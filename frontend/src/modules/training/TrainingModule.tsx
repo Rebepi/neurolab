@@ -38,7 +38,7 @@ export default function TrainingModule({ currentProject }: { currentProject: any
     setLiveLog([])
     setLiveMetrics(null)
     setLiveProgress(0)
-    const es = new EventSource(`http://localhost:8000/api/v1/training-jobs/${jobId}/events`)
+    const es = new EventSource(`/api/v1/training-jobs/${jobId}/events`)
     es.onmessage = e => {
       try {
         const data = JSON.parse(e.data)

@@ -5,8 +5,12 @@ from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
 
 from app.database import init_db, get_db
+from app.paths import DATA_DIR
 from app.sample_data import generate_sample_csvs
 from app.eda import perform_eda_and_preprocess
 from app.routes import auth, projects, datasets, architectures, training, models, audit, admin
@@ -15,7 +19,7 @@ from app.routes import auth, projects, datasets, architectures, training, models
 async def lifespan(app: FastAPI):
     init_db()
 
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "datasets")
+    data_dir = str(DATA_DIR / "datasets")
     samples = generate_sample_csvs(data_dir)
 
     conn = get_db()
@@ -87,8 +91,16 @@ app.include_router(models.router)
 app.include_router(audit.router)
 app.include_router(admin.router)
 
+# Validar el build antes de aceptar tráfico si se solicita servir el frontend.
+frontend_dir = os.environ.get("NEUROLAB_FRONTEND_DIR")
+frontend_path = Path(frontend_dir).resolve() if frontend_dir else None
+if frontend_path and not (frontend_path / "index.html").is_file():
+    raise RuntimeError("NEUROLAB_FRONTEND_DIR debe contener el build de Vite")
+
 @app.get("/")
 def root():
+    if frontend_path:
+        return FileResponse(frontend_path / "index.html")
     return {
         "name": "NeuroLab Enterprise API",
         "version": "1.0.0",
@@ -107,4 +119,10 @@ def health():
             "worker_queue": "active"
         }
     }
+
+
+# En Azure el mismo origen sirve la API y el build de Vite (incluido SSE).
+# Mantener el montaje después de las rutas para no ocultar /api ni /health.
+if frontend_path:
+    app.mount("/", StaticFiles(directory=str(frontend_path), html=True), name="frontend")
 

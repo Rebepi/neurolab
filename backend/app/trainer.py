@@ -14,6 +14,7 @@ from tensorflow.keras import layers
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
 
 from app.database import get_db
+from app.paths import DATA_DIR
 
 job_event_queues = {}
 job_event_locks = threading.Lock()
@@ -269,7 +270,7 @@ def run_training_worker(job_id: str):
             "total_test_samples": len(y_test)
         }
 
-        models_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "models")
+        models_dir = str(DATA_DIR / "models")
         os.makedirs(models_dir, exist_ok=True)
         model_save_path = os.path.join(models_dir, f"{job_id}.keras")
         model.save(model_save_path)

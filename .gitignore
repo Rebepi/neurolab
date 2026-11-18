@@ -6,6 +6,11 @@
 *.pem
 *.key
 *.crt
+infra/azure/lab.local.json
+infra/azure/*.local.*
+infra/azure/main.json
+deploy/package/
+docs/*.local.*
 
 # Dependencias y compilaciones de Frontend (Node / Vite)
 node_modules/

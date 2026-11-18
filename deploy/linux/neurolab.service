@@ -1,0 +1,31 @@
+[Unit]
+Description=NeuroLab academic demo (FastAPI and static frontend)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=neurolab
+Group=neurolab
+WorkingDirectory=/opt/neurolab/backend
+Environment=NEUROLAB_DATA_DIR=/var/lib/neurolab
+Environment=NEUROLAB_FRONTEND_DIR=/opt/neurolab/frontend/dist
+Environment=TF_NUM_INTRAOP_THREADS=2
+Environment=TF_NUM_INTEROP_THREADS=1
+Environment=OMP_NUM_THREADS=2
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=KERAS_HOME=/var/lib/neurolab/.keras
+ExecStart=/opt/neurolab/venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 80 --workers 1
+Restart=on-failure
+RestartSec=10
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/neurolab
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 from app.database import get_db
+from app.paths import DATA_DIR
 from app.eda import perform_eda_and_preprocess
 from app.sample_data import generate_sample_csvs
 
@@ -44,7 +45,7 @@ async def upload_dataset(
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Formato no admitido. Solo se permiten archivos .csv estructurados.")
 
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "datasets")
+    data_dir = str(DATA_DIR / "datasets")
     os.makedirs(data_dir, exist_ok=True)
 
     file_id = f"ds-{uuid.uuid4().hex[:8]}"
@@ -111,7 +112,7 @@ async def upload_dataset(
 
 @router.post("/projects/{project_id}/datasets/seed-sample")
 def seed_sample_dataset(project_id: str, sample_type: str = "churn"):
-    data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "datasets")
+    data_dir = str(DATA_DIR / "datasets")
     samples = generate_sample_csvs(data_dir)
 
     selected_csv = samples["churn"] if sample_type == "churn" else samples["credit"]

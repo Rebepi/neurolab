@@ -3,8 +3,9 @@ import os
 import json
 import hashlib
 from datetime import datetime
+from app.paths import DATA_DIR
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "neurolab.db")
+DB_PATH = str(DATA_DIR / "neurolab.db")
 
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)

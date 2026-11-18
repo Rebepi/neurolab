@@ -1,0 +1,12 @@
+{
+  "subscriptionId": "REEMPLAZAR-POR-EL-ID-DE-TU-SUSCRIPCION",
+  "resourceGroup": "rg-neurolab-demo",
+  "location": "westus2",
+  "prefix": "neurolab",
+  "operatorCidr": "REEMPLAZAR-POR-TU-IP-PUBLICA/32",
+  "adminUsername": "neurolabadmin",
+  "sshPublicKeyPath": "~/.ssh/neurolab_azure.pub",
+  "vmSize": "Standard_B2als_v2",
+  "almaSku": "9-gen2",
+  "shutdownTime": "0300"
+}

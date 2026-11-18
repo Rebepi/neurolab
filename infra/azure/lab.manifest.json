@@ -1,0 +1,26 @@
+{
+  "subscriptionId": "2be7b195-b055-4c7b-bf97-09ccc07d2f4f",
+  "tenantId": "b4a40545-7779-4b38-aff7-1f1738f80840",
+  "resourceGroup": "rg-neurolab-demo",
+  "location": "westus2",
+  "prefix": "neurolab",
+  "adminUsername": "neurolabadmin",
+  "sshPublicKeyPath": "~/.ssh/neurolab_azure.pub",
+  "vmSize": "Standard_B2als_v2",
+  "almaSku": "9-gen2",
+  "shutdownTime": "0300",
+  "servers": [
+    {
+      "name": "neurolab-win",
+      "system": "Windows Server 2022",
+      "ip": "20.112.93.115",
+      "dns": "neurolab-win-qhxnndvnd6qem.westus2.cloudapp.azure.com"
+    },
+    {
+      "name": "neurolab-alma",
+      "system": "AlmaLinux 9",
+      "ip": "13.66.155.80",
+      "dns": "neurolab-alma-qhxnndvnd6qem.westus2.cloudapp.azure.com"
+    }
+  ]
+}
