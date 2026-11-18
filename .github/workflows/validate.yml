@@ -57,6 +57,9 @@ jobs:
       - name: Test operator access rules without Azure
         shell: pwsh
         run: ./tests/test_operations.ps1
+      - name: Test encrypted backup integrity with synthetic data
+        shell: pwsh
+        run: ./tests/test_private_backup.ps1
       - name: Parse PowerShell scripts
         shell: pwsh
         run: |

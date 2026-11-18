@@ -6,6 +6,8 @@
 *.pem
 *.key
 *.crt
+NEUROLAB_ACCESOS_PRIVADOS*.txt
+*neurolab-private-backup*.json
 infra/azure/lab.local.json
 infra/azure/*.local.*
 infra/azure/main.json

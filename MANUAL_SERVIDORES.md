@@ -246,7 +246,9 @@ $windowsCredential = Import-Clixml "$env:USERPROFILE/.azure/neurolab-windows.cre
 $windowsCredential.GetNetworkCredential().Password
 ```
 
-Ese XML está protegido con DPAPI: copiarlo a otro usuario o computadora **no permite descifrarlo allí**. Antes de cambiar de equipo, guarda la contraseña en un gestor de contraseñas o medio cifrado bajo tu control. El manifiesto y Git no guardan una copia recuperable.
+Ese XML está protegido con DPAPI: copiarlo a otro usuario o computadora **no permite descifrarlo allí**. Antes de cambiar de equipo, guarda la contraseña en un gestor de contraseñas o medio cifrado bajo tu control. El manifiesto y Git no guardan la contraseña en texto plano.
+
+El propietario dispone además de un **TXT privado en Descargas** con la contraseña, par SSH, rutas e instrucciones de `.env`. El archivo `infra/azure/private-backup/neurolab-credentials.enc` permite recuperar esas credenciales desde Git **solo con la clave AES que está en ese TXT**, fuera del repositorio. La [guía del respaldo](infra/azure/private-backup/README.md) explica cómo validar y restaurar en otro equipo sin sobrescribir credenciales diferentes. No pegar su contenido en el chat: un agente autorizado puede ejecutar el restaurador local sin mostrar los secretos. Esta recuperación no sustituye el inicio de sesión Azure de cada persona.
 
 Si no la conservaste, aún puedes administrar las VM con tu sesión autorizada de Azure. Para recuperar RDP, el propietario puede usar **VM Windows → Ayuda / Restablecer contraseña** en Azure Portal y establecer una nueva. Eso cambia la credencial de RDP; no es un paso rutinario y debe coordinarse con el compañero. No hace falta restablecerla para que los agentes operen por Azure Run Command.
 
@@ -425,7 +427,7 @@ Si falla el archivo, asegurarse de volver a iniciar el servicio. Copiar el respa
 | `.github/workflows/validate.yml` | CI sin encendido ni despliegue automático Azure |
 | `tests/` | Comprobaciones de integración y operación sin Azure |
 
-Se publican código, instrucciones, configuración de ejemplo y manifiesto no secreto. **No se publican** `lab.local.json`, archivos `.local.*`, `.env`, `.azure`, `.ssh`, contraseñas, claves, tokens, ZIP de despliegue, logs, bases ni modelos. El repositorio es público.
+Se publican código, instrucciones, configuración de ejemplo y manifiesto no secreto. **No se publican en texto plano** `lab.local.json`, archivos `.local.*`, `.env`, `.azure`, `.ssh`, contraseñas, claves, tokens, ZIP de despliegue, logs, bases ni modelos. El repositorio es público. Por pedido del propietario se incluye un respaldo de credenciales **cifrado AES-256-GCM** en `infra/azure/private-backup/neurolab-credentials.enc`; su clave aleatoria y el TXT privado de Descargas nunca se suben a Git.
 
 Los cambios del despliegue incluyeron servir React desde FastAPI, centralizar los datos mediante `NEUROLAB_DATA_DIR`, corregir la URL SSE que apuntaba a localhost, añadir `email-validator`, corregir el lockfile de npm, instalar los servicios de ambos sistemas y añadir el apagado diario. La aplicación se comprobó en Azure con Python 3.11; las pruebas locales también validaron el flujo de entrenamiento.
 

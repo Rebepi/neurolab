@@ -26,6 +26,7 @@
 - Este archivo da instrucciones; NO concede acceso. Usar la identidad de Azure CLI o una clave SSH local.
 - Leer `docs/AZURE.md` antes de operar servidores. Obtener nombres/IP reales con la acción `Connections`.
 - No guardar contraseñas, tokens, claves privadas, perfiles de Azure ni datos de usuarios en Git.
+- Excepción solicitada por el propietario: `infra/azure/private-backup/neurolab-credentials.enc` es un respaldo AES-256-GCM publicable. La clave AES y el TXT `NEUROLAB_ACCESOS_PRIVADOS.txt` permanecen fuera de Git, en Descargas. No mostrar su contenido en el chat ni crear `.env` con esas claves. Restaurar solo por pedido explícito del propietario.
 - No usar SSH con `StrictHostKeyChecking=no`. Verificar la huella del host antes del primer acceso.
 - Mantener RDP, SSH y HTTP restringidos al CIDR del operador. No cambiarlo a `0.0.0.0/0`.
 - No encender VM por un push, una revisión ni una prueba automática. `Start` solo para una sesión solicitada.
