@@ -90,7 +90,7 @@ export function ActivationsLabTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-7 bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 space-y-5">
+        <div className="lg:col-span-7 nl-cyber-panel nl-card-interactive animate-card-reveal nl-stagger-1 rounded-2xl p-6 space-y-5">
           {selectedActivation === 'Softmax' ? (
             <>
               <div className="flex items-center justify-between flex-wrap gap-2">
@@ -299,7 +299,7 @@ export function ActivationsLabTab() {
           )}
         </div>
 
-        <div className="lg:col-span-5 bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 space-y-4">
+        <div className="lg:col-span-5 nl-cyber-panel nl-card-interactive animate-card-reveal nl-stagger-2 rounded-2xl p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-white font-bold text-base">Ficha Técnica de {selectedActivation}</h4>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono bg-slate-950 border border-slate-800 text-slate-300">

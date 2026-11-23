@@ -9,6 +9,8 @@ interface PaginationBarProps {
   pageSizeOptions?: readonly number[]
   onPageSizeChange?: (size: number) => void
   itemLabel?: string
+  variant?: 'attached' | 'card'
+  className?: string
 }
 
 function buildPageTokens(current: number, total: number): Array<number | 'ellipsis-left' | 'ellipsis-right'> {
@@ -34,6 +36,8 @@ export function PaginationBar({
   pageSizeOptions = [5, 10, 25, 50],
   onPageSizeChange,
   itemLabel = 'registros',
+  variant = 'attached',
+  className = '',
 }: PaginationBarProps) {
   if (totalItems <= 0) return null
 
@@ -44,7 +48,13 @@ export function PaginationBar({
   const pageTokens = buildPageTokens(safePage, totalPages)
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-t border-slate-800/80 bg-slate-950/45 text-xs">
+    <div
+      className={
+        variant === 'card'
+          ? `nl-cyber-panel rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-2.5 text-xs shrink-0 ${className}`
+          : `flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-t border-slate-800/80 bg-slate-950/45 text-xs ${className}`
+      }
+    >
       <div className="flex flex-wrap items-center gap-3 text-slate-400">
         <span>
           Mostrando <span className="text-white font-mono font-semibold">{startIdx}–{endIdx}</span> de{' '}

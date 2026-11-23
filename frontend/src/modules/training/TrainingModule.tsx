@@ -1,13 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
-import { Play, Zap, RefreshCw } from 'lucide-react'
-import { api } from '../../services/api'
+import { Play, Zap, RefreshCw, ArrowRight } from 'lucide-react'
+import { api, buildAuthorizedUrl } from '../../services/api'
 import { Dataset, Architecture, TrainingJob } from '../../types'
 import { TrainingWizard } from './components/TrainingWizard'
 import { LiveMonitorPanel, type LiveTrainingMetrics } from './components/LiveMonitorPanel'
 import { TrainingHistoryTable } from './components/TrainingHistoryTable'
+import { ModuleStudioHero } from '../../components/ModuleStudioHero'
 import { useToast } from '../../components/toast/ToastContext'
 
-export default function TrainingModule({ currentProject }: { currentProject: any }) {
+export default function TrainingModule({
+  currentProject,
+  onNavigate,
+}: {
+  currentProject: any
+  onNavigate?: (module: string) => void
+}) {
   const { success: notifySuccess, error: notifyError, warning: notifyWarning, info: notifyInfo } = useToast()
   const [datasets, setDatasets] = useState<Dataset[]>([])
   const [architectures, setArchitectures] = useState<Architecture[]>([])
@@ -38,7 +45,7 @@ export default function TrainingModule({ currentProject }: { currentProject: any
     setLiveLog([])
     setLiveMetrics(null)
     setLiveProgress(0)
-    const es = new EventSource(`http://localhost:8000/api/v1/training-jobs/${jobId}/events`)
+    const es = new EventSource(buildAuthorizedUrl(`/training-jobs/${jobId}/events`))
     es.onmessage = e => {
       try {
         const data = JSON.parse(e.data)
@@ -62,7 +69,16 @@ export default function TrainingModule({ currentProject }: { currentProject: any
           es.close()
           setTimeout(() => loadAll(), 1500)
           if (finalType === 'completed') {
-            notifySuccess('Entrenamiento completado', 'Métricas de evaluación y artefacto generados')
+            notifySuccess(
+              'Entrenamiento completado',
+              'Métricas de evaluación y artefacto .keras generados',
+              onNavigate
+                ? {
+                    actionLabel: 'Ir al Paso 05: Evaluación →',
+                    onAction: () => onNavigate('evaluation'),
+                  }
+                : undefined
+            )
           } else if (finalType === 'failed') {
             notifyError('Entrenamiento fallido', data.error || 'El worker reportó un error durante el entrenamiento')
           } else {
@@ -91,9 +107,14 @@ export default function TrainingModule({ currentProject }: { currentProject: any
       setDatasets(ds)
       setArchitectures(archs)
       setJobs(js)
-      const runningJob = js.find(j => ['RUNNING', 'PREPARING', 'QUEUED'].includes(j.status))
+      if (ds.length > 0) setSelectedDataset(prev => prev ?? ds[0])
+      if (archs.length > 0) setSelectedArch(prev => prev ?? archs[0])
+      const runningJob = js.find(j => ['RUNNING', 'PREPARING', 'QUEUED', 'PAUSED'].includes(j.status))
       if (runningJob && !monitorJobId) {
         connectSSE(runningJob.id)
+      } else if (js.length === 0 && ds.length > 0 && archs.length > 0) {
+        setShowWizard(true)
+        setStep(3)
       }
     } catch (e: unknown) {
       notifyError('Error al cargar entrenamientos', e instanceof Error ? e.message : 'No se pudo consultar la cola de jobs')
@@ -141,16 +162,36 @@ export default function TrainingModule({ currentProject }: { currentProject: any
     }
   }
 
-  async function handleCancel(jobId: string) {
+  async function handleCancel(jobId: string, reason?: string) {
     setCancelling(jobId)
     try {
-      await api.cancelJob(jobId)
+      await api.cancelJob(jobId, reason)
       await loadAll()
       notifyWarning('Ejecución cancelada', `Job ${jobId.slice(0, 8)}`)
     } catch (e: unknown) {
       notifyError('No se pudo cancelar el job', e instanceof Error ? e.message : 'Error al cancelar')
     } finally {
       setCancelling(null)
+    }
+  }
+
+  async function handlePause(jobId: string) {
+    try {
+      await api.pauseJob(jobId)
+      await loadAll()
+      notifyInfo('Pausa solicitada', `Job ${jobId.slice(0, 8)} se pausará al finalizar la época actual`)
+    } catch (e: unknown) {
+      notifyError('No se pudo pausar el job', e instanceof Error ? e.message : 'Error al pausar')
+    }
+  }
+
+  async function handleResume(jobId: string) {
+    try {
+      await api.resumeJob(jobId)
+      await loadAll()
+      notifySuccess('Entrenamiento reanudado', `Job ${jobId.slice(0, 8)} continúa en ejecución`)
+    } catch (e: unknown) {
+      notifyError('No se pudo reanudar el job', e instanceof Error ? e.message : 'Error al reanudar')
     }
   }
 
@@ -173,23 +214,61 @@ export default function TrainingModule({ currentProject }: { currentProject: any
     )
   }
 
+  const hasCompletedJob = jobs.some(j => j.status === 'COMPLETED') || liveStatus === 'COMPLETED'
+  const completedCount = jobs.filter(j => j.status === 'COMPLETED').length
+  const runningCount = jobs.filter(j => ['RUNNING', 'PREPARING', 'QUEUED'].includes(j.status)).length
+  const bestAccJob = jobs
+    .filter(j => j.status === 'COMPLETED' && typeof j.accuracy === 'number')
+    .sort((a, b) => (b.accuracy ?? 0) - (a.accuracy ?? 0))[0]
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-end gap-2">
-        <button
-          onClick={loadAll}
-          className="p-2 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-        <button
-          onClick={() => setShowWizard(w => !w)}
-          className="nl-btn-shimmer flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium transition-all shadow-md"
-        >
-          <Zap className="w-4 h-4" />
-          Nuevo Entrenamiento
-        </button>
-      </div>
+    <div className="flex-1 flex flex-col gap-3 min-h-0">
+      <ModuleStudioHero
+        variant="convergence"
+        eyebrow="MOTOR TENSORFLOW / KERAS · STREAMING SSE EN VIVO"
+        title="Entrenamientos"
+        highlight="Keras"
+        subtitle={`Configura hiperparámetros, lanza corridas reales y monitorea curvas de convergencia en ${currentProject.name}.`}
+        icon={Play}
+        liveBadge={runningCount > 0 || (monitorJobId && liveStatus === 'RUNNING') ? 'ENTRENANDO SSE EN VIVO' : undefined}
+        tipTitle="Ejecución Real con TensorFlow 2.21"
+        tipText="Cada entrenamiento ajusta la red sobre la partición Train (70%), valida por época con Val (15%) y emite telemetría por SSE."
+        metrics={[
+          { label: 'Corridas', value: jobs.length, tone: 'cyan' },
+          { label: 'Completados', value: completedCount, tone: 'emerald' },
+          { label: 'Activos', value: runningCount, tone: runningCount > 0 ? 'amber' : 'teal' },
+          ...(bestAccJob?.accuracy != null
+            ? [{ label: 'Mejor Accuracy', value: `${(bestAccJob.accuracy * 100).toFixed(1)}%`, tone: 'violet' as const }]
+            : []),
+        ]}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {hasCompletedJob && onNavigate && (
+              <button
+                onClick={() => onNavigate('evaluation')}
+                className="nl-btn-shimmer flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors shadow-md"
+              >
+                <span>Evaluación (05)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              onClick={loadAll}
+              className="p-2 rounded-xl bg-slate-900/75 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+              aria-label="Refrescar entrenamientos"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <button
+              onClick={() => setShowWizard(w => !w)}
+              className="nl-btn-shimmer flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-xs sm:text-sm font-semibold transition-all shadow-md"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Nuevo Entrenamiento</span>
+            </button>
+          </div>
+        }
+      />
 
       {showWizard && (
         <TrainingWizard
@@ -212,6 +291,7 @@ export default function TrainingModule({ currentProject }: { currentProject: any
           creating={creating}
           createError={createError}
           onStartTraining={handleStartTraining}
+          onClose={() => setShowWizard(false)}
         />
       )}
 
@@ -236,7 +316,10 @@ export default function TrainingModule({ currentProject }: { currentProject: any
         cancelling={cancelling}
         onMonitor={connectSSE}
         onCancel={handleCancel}
+        onPause={handlePause}
+        onResume={handleResume}
         onRetry={handleRetry}
+        onGoToEvaluation={onNavigate ? () => onNavigate('evaluation') : undefined}
       />
     </div>
   )

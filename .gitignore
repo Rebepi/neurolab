@@ -1,4 +1,3 @@
-# Secretos, credenciales y variables de entorno
 .cloudflare-token
 .env
 .env.*
@@ -6,8 +5,6 @@
 *.pem
 *.key
 *.crt
-
-# Dependencias y compilaciones de Frontend (Node / Vite)
 node_modules/
 frontend/node_modules/
 dist/
@@ -16,8 +13,6 @@ dist-ssr/
 .vite/
 .vite-temp/
 *.local
-
-# Entornos virtuales y caché de Backend (Python)
 __pycache__/
 *.py[cod]
 *$py.class
@@ -28,9 +23,10 @@ ENV/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
-
-# Bases de datos, datasets generados y artefactos de modelos IA
 backend/data/
+backend/app/data/
+datasets_empresa/
+dataset_*.csv
 *.db
 *.db-journal
 *.db-wal
@@ -43,8 +39,6 @@ backend/data/
 *.onnx
 *.npz
 *.pkl
-
-# Logs y archivos temporales
 logs/
 *.log
 npm-debug.log*
@@ -54,8 +48,6 @@ pnpm-debug.log*
 lerna-debug.log*
 tmp/
 temp/
-
-# Sistema operativo e IDEs
 .DS_Store
 Thumbs.db
 desktop.ini

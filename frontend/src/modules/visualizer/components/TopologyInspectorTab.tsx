@@ -1,177 +1,84 @@
-import { useState } from 'react'
-import { Plus, Minus } from 'lucide-react'
-import { InfoTip, SystemTooltip } from '../../../components/InfoTip'
-import { SystemSelect } from '../../../components/SystemSelect'
-import { MAX_NEURONS_PER_LAYER, TOPOLOGY_PRESETS } from '../constants'
+import { Lock, Layers, ArrowRight } from 'lucide-react'
+import { InfoTip } from '../../../components/InfoTip'
 import type { ActivationType } from '../types'
 
 interface TopologyInspectorTabProps {
   layerSizes: number[]
   layerActivations: ActivationType[]
-  onApplyPreset: (sizes: number[], acts: ActivationType[]) => void
-  onUpdateLayerActivation: (layerIdx: number, act: ActivationType) => void
-  onSetExactLayerCount: (layerIdx: number, newCount: number) => void
+  trainedVersion: string | null
+  targetName: string
+  onGoToArchitectures?: () => void
 }
 
 export function TopologyInspectorTab({
   layerSizes,
   layerActivations,
-  onApplyPreset,
-  onUpdateLayerActivation,
-  onSetExactLayerCount,
+  trainedVersion,
+  targetName,
+  onGoToArchitectures,
 }: TopologyInspectorTabProps) {
-  const [draftLayerCounts, setDraftLayerCounts] = useState<Record<number, string>>({})
-
-  const clearDraft = (lIdx: number) => {
-    setDraftLayerCounts(prev => {
-      const next = { ...prev }
-      delete next[lIdx]
-      return next
-    })
-  }
-
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
-          <span>Plantillas Rápidas de Arquitectura</span>
-          <InfoTip
-            text="Preajustes de topología listos para probar desde redes mínimas hasta capas masivas de 128 neuronas."
-            size="xs"
-          />
+      <div className="p-3.5 rounded-xl bg-teal-950/35 border border-teal-500/35 space-y-1.5">
+        <p className="text-xs font-bold text-teal-300 flex items-center gap-1.5">
+          <Lock className="w-3.5 h-3.5" />
+          <span>
+            {trainedVersion
+              ? `Topología Sellada al Modelo Keras ${trainedVersion}`
+              : 'Topología Sincronizada con el Área'}
+          </span>
         </p>
-        <div className="grid grid-cols-2 gap-2">
-          {TOPOLOGY_PRESETS.map(preset => (
-            <button
-              key={preset.label}
-              onClick={() => onApplyPreset(preset.sizes, preset.acts)}
-              className="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left text-xs font-bold text-white transition-all"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
+        <p className="text-[11px] text-slate-300 leading-relaxed">
+          Para garantizar fidelidad matemática con el modelo real entrenado en TensorFlow, las capas y neuronas aquí son de solo lectura. Si deseas modificar la red, hazlo en <strong>Arquitecturas</strong> y vuelve a entrenar.
+        </p>
+        {onGoToArchitectures && (
+          <button
+            type="button"
+            onClick={onGoToArchitectures}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold text-cyan-300 hover:text-white pt-1 transition-colors"
+          >
+            <span>Ir a Diseñar Nueva Arquitectura</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
+        )}
       </div>
 
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-white flex items-center gap-1.5">
-            <span>Neuronas por Capa (1 – 256)</span>
+            <Layers className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Estructura Real de Capas ({layerSizes.length})</span>
             <InfoTip
-              text="Define cuántas neuronas integran cada columna y la función de activación usada al pasar a la siguiente capa."
+              text="Desglose exacto de dimensiones y funciones de activación extraído directamente del grafo compilado en Keras."
               size="xs"
             />
           </p>
         </div>
 
-        <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
           {layerSizes.map((count, lIdx) => {
             const isInput = lIdx === 0
             const isOutput = lIdx === layerSizes.length - 1
             const name = isInput
-              ? 'Capa de Entrada (X)'
+              ? 'Capa de Entrada (Features)'
               : isOutput
-                ? 'Capa de Salida (Ŷ)'
-                : `Capa Oculta H${lIdx}`
+                ? `Capa de Salida (${targetName})`
+                : `Capa Oculta Dense #${lIdx}`
+            const act = (layerActivations[lIdx] || 'relu').toUpperCase()
             return (
               <div
                 key={lIdx}
-                className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2"
+                className="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-2"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-white">{name}</span>
-                  {!isInput && (
-                    <SystemSelect
-                      value={layerActivations[lIdx] || 'relu'}
-                      onChange={val => onUpdateLayerActivation(lIdx, val as ActivationType)}
-                      size="xs"
-                      className="w-32"
-                      align="right"
-                      menuMinWidth={150}
-                      triggerClassName="text-indigo-400 font-mono"
-                      ariaLabel={`Activación de ${name}`}
-                      options={[
-                        { value: 'relu', label: 'ReLU', mono: true },
-                        { value: 'sigmoid', label: 'Sigmoid', mono: true },
-                        { value: 'tanh', label: 'Tanh', mono: true },
-                        { value: 'leaky_relu', label: 'LeakyReLU', mono: true },
-                        { value: 'softmax', label: 'Softmax', mono: true },
-                        { value: 'linear', label: 'Linear', mono: true },
-                      ]}
-                    />
-                  )}
+                <div>
+                  <p className="text-xs font-bold text-white">{name}</p>
+                  <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                    {count} {count === 1 ? 'neurona' : 'neuronas'} en grafo visual
+                  </p>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <SystemTooltip label="Quitar 1 neurona" side="top">
-                    <button
-                      onClick={() => {
-                        clearDraft(lIdx)
-                        onSetExactLayerCount(lIdx, count - 1)
-                      }}
-                      disabled={count <= 1}
-                      className="w-6 h-6 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white flex items-center justify-center disabled:opacity-40"
-                      aria-label="Quitar 1 neurona"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                  </SystemTooltip>
-                  <input
-                    type="range"
-                    min={1}
-                    max={MAX_NEURONS_PER_LAYER}
-                    value={count}
-                    onChange={e => {
-                      clearDraft(lIdx)
-                      onSetExactLayerCount(lIdx, parseInt(e.target.value, 10))
-                    }}
-                    className="flex-1 accent-teal-600 h-1.5 bg-slate-800 rounded-lg"
-                  />
-                  <SystemTooltip label="Añadir 1 neurona" side="top">
-                    <button
-                      onClick={() => {
-                        clearDraft(lIdx)
-                        onSetExactLayerCount(lIdx, count + 1)
-                      }}
-                      disabled={count >= MAX_NEURONS_PER_LAYER}
-                      className="w-6 h-6 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white flex items-center justify-center disabled:opacity-40"
-                      aria-label="Añadir 1 neurona"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </SystemTooltip>
-                  <input
-                    type="number"
-                    min={1}
-                    max={MAX_NEURONS_PER_LAYER}
-                    value={draftLayerCounts[lIdx] ?? String(count)}
-                    onChange={e => {
-                      const raw = e.target.value
-                      setDraftLayerCounts(prev => ({ ...prev, [lIdx]: raw }))
-                      const v = parseInt(raw, 10)
-                      if (!Number.isNaN(v) && v >= 1 && v <= MAX_NEURONS_PER_LAYER) {
-                        onSetExactLayerCount(lIdx, v)
-                      }
-                    }}
-                    onBlur={() => {
-                      const raw = draftLayerCounts[lIdx]
-                      if (raw !== undefined) {
-                        const v = parseInt(raw, 10)
-                        if (!Number.isNaN(v)) {
-                          onSetExactLayerCount(lIdx, v)
-                        }
-                        clearDraft(lIdx)
-                      }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        (e.currentTarget as HTMLInputElement).blur()
-                      }
-                    }}
-                    className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs font-mono font-bold text-white text-right"
-                    aria-label={`Neuronas en ${name}`}
-                  />
-                </div>
+                <span className="px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[11px] font-mono font-bold text-indigo-300">
+                  {act}
+                </span>
               </div>
             )
           })}
@@ -180,4 +87,3 @@ export function TopologyInspectorTab({
     </div>
   )
 }
-

@@ -26,7 +26,7 @@ export function RbacMatrixModal({ onClose }: RbacMatrixModalProps) {
         aria-modal="true"
         aria-labelledby="rbac-matrix-modal-title"
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-xl nl-surface rounded-2xl border border-slate-700/60 shadow-2xl overflow-hidden animate-pop-in"
+        className="w-full max-w-xl nl-cyber-panel rounded-2xl shadow-2xl overflow-hidden animate-pop-in"
       >
         <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50">
           <div className="flex items-center gap-3">

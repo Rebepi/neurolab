@@ -2,6 +2,7 @@ import type { LayerSpec } from '../../types/index'
 
 export interface ArchitecturePreset {
   name: string
+  family: 'Feedforward' | 'RNN' | 'CNN' | 'GAN'
   desc: string
   layers: LayerSpec[]
 }
@@ -9,6 +10,7 @@ export interface ArchitecturePreset {
 export const ARCHITECTURE_PRESETS: ArchitecturePreset[] = [
   {
     name: 'MLP Clásico (32 → 16)',
+    family: 'Feedforward',
     desc: 'Arquitectura estándar y equilibrada para clasificación y regresión en datos tabulares.',
     layers: [
       { id: 'preset-classic-1', type: 'Dense', units: 32, activation: 'relu', use_bias: true },
@@ -17,6 +19,7 @@ export const ARCHITECTURE_PRESETS: ArchitecturePreset[] = [
   },
   {
     name: 'Deep Classifier con Dropout (64 → 32 → 16)',
+    family: 'Feedforward',
     desc: 'Red profunda con capas de Dropout interactivas para prevenir sobreajuste (overfitting).',
     layers: [
       { id: 'preset-deep-1', type: 'Dense', units: 64, activation: 'relu', use_bias: true },
@@ -28,11 +31,43 @@ export const ARCHITECTURE_PRESETS: ArchitecturePreset[] = [
   },
   {
     name: 'Red Ancha / Wide Network (128 → 64)',
+    family: 'Feedforward',
     desc: 'Alta capacidad de representación para datasets con gran cantidad de características codificadas.',
     layers: [
       { id: 'preset-wide-1', type: 'Dense', units: 128, activation: 'relu', use_bias: true },
       { id: 'preset-wide-2', type: 'BatchNormalization' },
       { id: 'preset-wide-3', type: 'Dense', units: 64, activation: 'relu', use_bias: true },
+    ],
+  },
+  {
+    name: 'CNN 1D Extractor (Conv1D → Pool → Dense)',
+    family: 'CNN',
+    desc: 'Convolución 1D para detectar correlaciones locales entre variables seguidas de pooling y capa densa.',
+    layers: [
+      { id: 'preset-cnn-1', type: 'Conv1D', filters: 32, kernel_size: 3, padding: 'same', activation: 'relu', use_bias: true },
+      { id: 'preset-cnn-2', type: 'MaxPooling1D', pool_size: 2 },
+      { id: 'preset-cnn-3', type: 'Flatten' },
+      { id: 'preset-cnn-4', type: 'Dense', units: 32, activation: 'relu', use_bias: true },
+    ],
+  },
+  {
+    name: 'RNN Secuencial (LSTM → Dropout → Dense)',
+    family: 'RNN',
+    desc: 'Red recurrente LSTM para capturar dependencias secuenciales entre características ordenadas.',
+    layers: [
+      { id: 'preset-rnn-1', type: 'LSTM', units: 32, activation: 'tanh' },
+      { id: 'preset-rnn-2', type: 'Dropout', rate: 0.2 },
+      { id: 'preset-rnn-3', type: 'Dense', units: 16, activation: 'relu', use_bias: true },
+    ],
+  },
+  {
+    name: 'GAN Discriminador Latente (64 → 32)',
+    family: 'GAN',
+    desc: 'Arquitectura discriminadora/adversarial con LeakyReLU y regularización Dropout.',
+    layers: [
+      { id: 'preset-gan-1', type: 'Dense', units: 64, activation: 'relu', use_bias: true },
+      { id: 'preset-gan-2', type: 'Dropout', rate: 0.25 },
+      { id: 'preset-gan-3', type: 'Dense', units: 32, activation: 'relu', use_bias: true },
     ],
   },
 ]

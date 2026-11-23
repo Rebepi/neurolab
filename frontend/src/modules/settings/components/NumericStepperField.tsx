@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { Minus, Plus } from 'lucide-react'
 import { InfoTip } from '../../../components/InfoTip'
+import { ModifiedBadge } from './ToggleRow'
 
 interface NumericStepperFieldProps {
   label: string
@@ -10,6 +12,9 @@ interface NumericStepperFieldProps {
   unit?: string
   info?: string
   disabled?: boolean
+  baseline?: number
+  showSlider?: boolean
+  action?: ReactNode
   onChange: (value: number) => void
 }
 
@@ -22,6 +27,9 @@ export function NumericStepperField({
   unit,
   info,
   disabled = false,
+  baseline,
+  showSlider = true,
+  action,
   onChange,
 }: NumericStepperFieldProps) {
   function clamp(next: number) {
@@ -29,8 +37,15 @@ export function NumericStepperField({
     return Math.min(max, Math.max(min, next))
   }
 
+  const modified = baseline !== undefined && baseline !== value
+  const pct = max > min ? ((Math.min(max, Math.max(min, value)) - min) / (max - min)) * 100 : 0
+
   return (
-    <div className="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 space-y-2.5">
+    <div
+      className={`bg-slate-950/60 border rounded-xl p-3.5 space-y-2.5 transition-colors ${
+        modified ? 'border-amber-500/40' : 'border-slate-800/80'
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <label className="text-slate-200 text-xs font-semibold flex items-center gap-1.5">
@@ -38,8 +53,20 @@ export function NumericStepperField({
             {info && <InfoTip text={info} size="xs" />}
           </label>
           <p className="text-[10px] font-mono text-slate-500 mt-0.5">
-            Rango: {min} – {max}{unit ? ` ${unit}` : ''}
+            Rango: {min} – {max}
+            {unit ? ` ${unit}` : ''}
           </p>
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
+          {action}
+          {modified && (
+            <ModifiedBadge
+              disabled={disabled}
+              onRevert={() => onChange(baseline as number)}
+              title={`Revertir al valor guardado (${baseline}${unit ? ` ${unit}` : ''})`}
+            />
+          )}
         </div>
       </div>
 
@@ -72,11 +99,7 @@ export function NumericStepperField({
             }}
             className="w-20 bg-transparent text-center font-mono font-bold text-sm text-white outline-none disabled:opacity-60 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
-          {unit && (
-            <span className="text-[11px] font-mono text-slate-400 shrink-0">
-              {unit}
-            </span>
-          )}
+          {unit && <span className="text-[11px] font-mono text-slate-400 shrink-0">{unit}</span>}
         </div>
 
         <button
@@ -89,7 +112,23 @@ export function NumericStepperField({
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
+
+      {showSlider && (
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={Math.min(max, Math.max(min, value))}
+          disabled={disabled}
+          aria-label={`Deslizador de ${label}`}
+          onChange={e => onChange(clamp(Number(e.target.value)))}
+          className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            background: `linear-gradient(to right, var(--nl-accent-light) ${pct}%, rgba(148,163,184,0.25) ${pct}%)`,
+          }}
+        />
+      )}
     </div>
   )
 }
-

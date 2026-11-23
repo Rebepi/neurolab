@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Activity, Sparkles, Sliders, BookOpen, Search } from 'lucide-react'
+import { Activity, BookOpen, Search, Sliders, Sparkles } from 'lucide-react'
 import type { FundamentalsSection } from './math'
 import { NeuronSimulatorTab } from './components/NeuronSimulatorTab'
 import { ActivationsLabTab } from './components/ActivationsLabTab'
@@ -17,8 +17,8 @@ export default function FundamentalsModule() {
   const [activeTab, setActiveTab] = useState<FundamentalsSection>('neuron')
 
   return (
-    <div className="space-y-5">
-      <div className="flex gap-2 p-1.5 bg-slate-900/60 rounded-2xl border border-slate-700/50 overflow-x-auto w-full lg:w-fit">
+    <div className="space-y-6">
+      <div className="flex gap-2 p-1.5 nl-cyber-panel animate-card-reveal rounded-2xl overflow-x-auto w-full lg:w-fit">
         {SECTION_TABS.map(tab => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -29,7 +29,7 @@ export default function FundamentalsModule() {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                  ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-md shadow-indigo-500/25'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
               }`}
             >

@@ -1,108 +1,106 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { User, UserRole } from '../types'
+import { User } from '../types'
+import { api, getAuthToken, setAuthToken } from '../services/api'
+
+interface AuthSessionPayload {
+  user: User
+  access_token: string
+}
 
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<void>
-  verifyLogin: (email: string, password: string) => Promise<User>
-  commitLogin: (userData: User) => void
+  verifyLogin: (email: string, password: string) => Promise<AuthSessionPayload>
+  commitLogin: (session: AuthSessionPayload) => void
   logout: () => void
-  switchDemoRole: (role: UserRole) => void
-}
-
-const DEMO_USERS: Record<UserRole, User> = {
-  'Administrador': {
-    id: 'usr-admin',
-    email: 'admin@neurolab.io',
-    display_name: 'Admin Principal',
-    role: 'Administrador',
-    status: 'ACTIVE'
-  },
-  'Responsable de proyecto': {
-    id: 'usr-lead',
-    email: 'lead@neurolab.io',
-    display_name: 'Dra. Elena Ramos',
-    role: 'Responsable de proyecto',
-    status: 'ACTIVE'
-  },
-  'Ingeniero/analista de IA': {
-    id: 'usr-engineer',
-    email: 'engineer@neurolab.io',
-    display_name: 'Ing. Carlos Mendoza',
-    role: 'Ingeniero/analista de IA',
-    status: 'ACTIVE'
-  },
-  'Revisor': {
-    id: 'usr-reviewer',
-    email: 'reviewer@neurolab.io',
-    display_name: 'MSc. Sofía Castro',
-    role: 'Revisor',
-    status: 'ACTIVE'
-  },
-  'Lector': {
-    id: 'usr-viewer',
-    email: 'viewer@neurolab.io',
-    display_name: 'Lucas Romero',
-    role: 'Lector',
-    status: 'ACTIVE'
-  }
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<User | null>(() => {
+    const token = getAuthToken()
+    if (!token) {
+      try {
+        localStorage.removeItem('neurolab_user')
+      } catch {}
+      return null
+    }
+    try {
+      const stored = localStorage.getItem('neurolab_user')
+      return stored ? (JSON.parse(stored) as User) : null
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
-    const stored = localStorage.getItem('neurolab_user')
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored))
-      } catch {
-        localStorage.removeItem('neurolab_user')
-      }
+    const token = getAuthToken()
+    if (token) {
+      api
+        .getMe()
+        .then(freshUser => {
+          setUser(freshUser)
+          try {
+            localStorage.setItem('neurolab_user', JSON.stringify(freshUser))
+          } catch {}
+        })
+        .catch(() => {
+          setAuthToken(null)
+          try {
+            localStorage.removeItem('neurolab_user')
+          } catch {}
+          setUser(null)
+        })
     }
+
+    const onUnauthorized = () => {
+      setUser(null)
+    }
+    window.addEventListener('neurolab:unauthorized', onUnauthorized)
+    return () => window.removeEventListener('neurolab:unauthorized', onUnauthorized)
   }, [])
 
-  async function verifyLogin(email: string, password: string): Promise<User> {
+  async function verifyLogin(email: string, password: string): Promise<AuthSessionPayload> {
     const res = await fetch('/api/v1/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Error de autenticación' }))
       throw new Error(err.detail || 'Credenciales incorrectas')
     }
     const data = await res.json()
-    return data.user as User
+    return {
+      user: data.user as User,
+      access_token: data.access_token as string,
+    }
   }
 
-  function commitLogin(userData: User) {
-    setUser(userData)
-    localStorage.setItem('neurolab_user', JSON.stringify(userData))
+  function commitLogin(session: AuthSessionPayload) {
+    setAuthToken(session.access_token)
+    setUser(session.user)
+    try {
+      localStorage.setItem('neurolab_user', JSON.stringify(session.user))
+    } catch {}
   }
 
   async function login(email: string, password: string) {
-    const userData = await verifyLogin(email, password)
-    commitLogin(userData)
-  }
-
-  function switchDemoRole(role: UserRole) {
-    const targetUser = DEMO_USERS[role]
-    if (targetUser) {
-      setUser(targetUser)
-      localStorage.setItem('neurolab_user', JSON.stringify(targetUser))
-    }
+    const session = await verifyLogin(email, password)
+    commitLogin(session)
   }
 
   function logout() {
     setUser(null)
-    localStorage.removeItem('neurolab_user')
+    setAuthToken(null)
+    try {
+      localStorage.removeItem('neurolab_user')
+    } catch {}
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, verifyLogin, commitLogin, logout, switchDemoRole }}>
+    <AuthContext.Provider value={{ user, login, verifyLogin, commitLogin, logout }}>
       {children}
     </AuthContext.Provider>
   )

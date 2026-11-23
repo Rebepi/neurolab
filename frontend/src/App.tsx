@@ -17,6 +17,7 @@ const DatasetsModule = lazy(() => import('./modules/datasets/DatasetsModule'))
 const TrainingModule = lazy(() => import('./modules/training/TrainingModule'))
 const EvaluationModule = lazy(() => import('./modules/evaluation/EvaluationModule'))
 const ModelsModule = lazy(() => import('./modules/models/ModelsModule'))
+const InferenceModule = lazy(() => import('./modules/inference/InferenceModule'))
 const ReportsModule = lazy(() => import('./modules/reports/ReportsModule'))
 const AdminModule = lazy(() => import('./modules/admin/AdminModule'))
 const AuditModule = lazy(() => import('./modules/audit/AuditModule'))
@@ -35,7 +36,7 @@ function ModuleLoader() {
           className="absolute inset-1.5 rounded-full border border-t-transparent animate-spin-reverse"
           style={{ borderColor: 'var(--nl-accent)', borderTopColor: 'transparent' }}
         />
-        <div className="w-10 h-10 rounded-2xl nl-surface flex items-center justify-center nl-accent-glow">
+        <div className="w-10 h-10 rounded-2xl nl-cyber-panel animate-pop-in flex items-center justify-center nl-accent-glow">
           <Cpu className="w-5 h-5 text-indigo-400 animate-pulse" />
         </div>
       </div>
@@ -94,11 +95,11 @@ function AppWorkspace() {
     <div className="relative flex h-screen overflow-hidden nl-grid-bg animate-studio-emerge">
       <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
         <div
-          className="absolute -top-40 left-[12%] w-[480px] h-[480px] rounded-full blur-[140px] opacity-[0.11] animate-aurora-1"
+          className="absolute -top-40 left-[12%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-[0.16] animate-aurora-1"
           style={{ backgroundColor: 'var(--nl-accent)' }}
         />
         <div
-          className="absolute -bottom-44 right-[6%] w-[440px] h-[440px] rounded-full blur-[140px] opacity-[0.09] animate-aurora-2"
+          className="absolute -bottom-44 right-[6%] w-[460px] h-[460px] rounded-full blur-[140px] opacity-[0.13] animate-aurora-2"
           style={{ backgroundColor: 'var(--nl-secondary)' }}
         />
       </div>
@@ -117,6 +118,7 @@ function AppWorkspace() {
         activeModule={activeModule}
         onNavigate={handleNavigate}
         currentProject={currentProject}
+        onSelectProject={handleProjectSelect}
       />
 
       <div className="relative z-10 flex flex-col flex-1 overflow-hidden min-w-0">
@@ -124,62 +126,101 @@ function AppWorkspace() {
           activeModule={activeModule}
           currentProject={currentProject}
           onSelectProject={handleProjectSelect}
+          onOpenCommandPalette={() => setCmdOpen(true)}
           onLogout={logout}
           user={user}
         />
 
-        <main className="flex-1 overflow-y-auto px-6 py-5">
-          {['projects', 'datasets', 'architectures', 'training', 'evaluation', 'models'].includes(activeModule) && (
-            <WorkflowStepper
-              activeModule={activeModule}
-              onNavigate={handleNavigate}
-              currentProject={currentProject}
-            />
-          )}
+        <main
+          className={`flex-1 px-6 py-5 ${
+            activeModule === 'reports'
+              ? 'overflow-y-auto lg:overflow-hidden print:overflow-visible'
+              : activeModule === 'audit'
+                ? 'overflow-y-auto md:overflow-hidden'
+                : 'overflow-y-auto'
+          }`}
+        >
+          <div
+            className={`${
+              activeModule === 'reports'
+                ? 'min-h-full lg:h-full print:h-auto'
+                : activeModule === 'audit'
+                  ? 'min-h-full md:h-full'
+                  : 'min-h-full'
+            } flex flex-col`}
+          >
+            {['projects', 'datasets', 'architectures', 'training', 'evaluation', 'models', 'inference'].includes(activeModule) && (
+              <WorkflowStepper
+                activeModule={activeModule}
+                onNavigate={handleNavigate}
+                currentProject={currentProject}
+              />
+            )}
 
-          <Suspense fallback={<ModuleLoader />}>
-            <div key={activeModule} className="animate-module-enter">
-              {activeModule === 'dashboard' && (
-                <DashboardModule onNavigate={handleNavigate} />
-              )}
-              {activeModule === 'projects' && (
-                <ProjectsModule onProjectSelect={handleProjectSelect} currentProject={currentProject} />
-              )}
-              {activeModule === 'fundamentals' && (
-                <FundamentalsModule />
-              )}
-              {activeModule === 'architectures' && (
-                <ArchitecturesModule currentProject={currentProject} />
-              )}
-              {activeModule === 'datasets' && (
-                <DatasetsModule currentProject={currentProject} />
-              )}
-              {activeModule === 'training' && (
-                <TrainingModule currentProject={currentProject} />
-              )}
-              {activeModule === 'evaluation' && (
-                <EvaluationModule currentProject={currentProject} />
-              )}
-              {activeModule === 'models' && (
-                <ModelsModule currentProject={currentProject} />
-              )}
-              {activeModule === 'reports' && (
-                <ReportsModule currentProject={currentProject} />
-              )}
-              {activeModule === 'admin' && (
-                <AdminModule currentUser={user} />
-              )}
-              {activeModule === 'audit' && (
-                <AuditModule />
-              )}
-              {activeModule === 'settings' && (
-                <SettingsModule currentUser={user} />
-              )}
-              {activeModule === 'visualizer' && (
-                <NeuralVisualizerModule currentProject={currentProject} />
-              )}
-            </div>
-          </Suspense>
+            <Suspense fallback={<ModuleLoader />}>
+              <div
+                key={activeModule}
+                className={`animate-module-enter flex-1 flex flex-col ${
+                  activeModule === 'reports'
+                    ? 'lg:min-h-0'
+                    : activeModule === 'audit'
+                      ? 'md:min-h-0'
+                      : ''
+                }`}
+              >
+                {activeModule === 'dashboard' && (
+                  <DashboardModule
+                    onNavigate={handleNavigate}
+                    currentProject={currentProject}
+                    onSelectProject={handleProjectSelect}
+                  />
+                )}
+                {activeModule === 'projects' && (
+                  <ProjectsModule onProjectSelect={handleProjectSelect} currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+                {activeModule === 'fundamentals' && (
+                  <FundamentalsModule />
+                )}
+                {activeModule === 'architectures' && (
+                  <ArchitecturesModule currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+                {activeModule === 'datasets' && (
+                  <DatasetsModule currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+                {activeModule === 'training' && (
+                  <TrainingModule currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+                {activeModule === 'evaluation' && (
+                  <EvaluationModule currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+                {activeModule === 'models' && (
+                  <ModelsModule currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+                {activeModule === 'inference' && (
+                  <InferenceModule
+                    currentProject={currentProject}
+                    onNavigate={handleNavigate}
+                    onSelectProject={handleProjectSelect}
+                  />
+                )}
+                {activeModule === 'reports' && (
+                  <ReportsModule currentProject={currentProject} />
+                )}
+                {activeModule === 'admin' && (
+                  <AdminModule currentUser={user} />
+                )}
+                {activeModule === 'audit' && (
+                  <AuditModule />
+                )}
+                {activeModule === 'settings' && (
+                  <SettingsModule currentUser={user} />
+                )}
+                {activeModule === 'visualizer' && (
+                  <NeuralVisualizerModule currentProject={currentProject} onNavigate={handleNavigate} />
+                )}
+              </div>
+            </Suspense>
+          </div>
         </main>
       </div>
 

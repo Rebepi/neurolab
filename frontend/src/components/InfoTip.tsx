@@ -262,19 +262,19 @@ function FloatingPopover({
         ref={cardRef}
         className="relative rounded-xl px-3.5 py-2.5 shadow-2xl animate-pop-in"
         style={{
-          backgroundColor: 'var(--nl-bg-glass)',
-          backdropFilter: 'blur(20px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(150%)',
+          backgroundColor: 'var(--nl-bg-elevated)',
           border: '1px solid var(--nl-accent-border)',
-          boxShadow: 'var(--nl-shadow), 0 0 24px -6px var(--nl-accent-glow)',
+          boxShadow: 'var(--nl-shadow), 0 0 26px -6px var(--nl-accent-glow)',
         }}
       >
-        <div
-          className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl pointer-events-none"
-          style={{
-            background: 'linear-gradient(90deg, transparent, var(--nl-accent-light), var(--nl-secondary), transparent)',
-          }}
-        />
+        <div className="pointer-events-none absolute inset-0 rounded-xl overflow-hidden">
+          <div
+            className="h-[2px] w-full"
+            style={{
+              background: 'linear-gradient(90deg, transparent, var(--nl-accent-light), var(--nl-secondary), transparent)',
+            }}
+          />
+        </div>
         <div ref={bodyRef} className="min-w-0 space-y-1">
           {title && (
             <p

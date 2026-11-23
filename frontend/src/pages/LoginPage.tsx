@@ -42,21 +42,21 @@ export default function LoginPage() {
     setPulseBurst(b => b + 1)
     setLoading(true)
     try {
-      const userData = await verifyLogin(email, password)
+      const authSession = await verifyLogin(email, password)
       const reduced =
         window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
         document.documentElement.dataset.motion === 'reduced'
 
       if (reduced) {
-        commitLogin(userData)
-        toast.success('Sesión iniciada', `Bienvenido, ${userData.display_name}`)
+        commitLogin(authSession)
+        toast.success('Sesión iniciada', `Bienvenido, ${authSession.user.display_name}`)
         return
       }
 
       setEntering(true)
       enterTimerRef.current = window.setTimeout(() => {
-        commitLogin(userData)
-        toast.success('Sesión iniciada', `Bienvenido, ${userData.display_name}`)
+        commitLogin(authSession)
+        toast.success('Sesión iniciada', `Bienvenido, ${authSession.user.display_name}`)
       }, 1120)
     } catch (err: any) {
       toast.error('Error al iniciar sesión', err.message ?? 'Verifica tus credenciales')
@@ -93,24 +93,24 @@ export default function LoginPage() {
         }`}
       >
         <section className="lg:col-span-5 xl:col-span-4 space-y-5">
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-semibold animate-card-reveal">
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-teal-500/15 border border-teal-400/35 text-teal-200 text-xs font-semibold animate-card-reveal">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-400" />
             </span>
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Plataforma Empresarial de Redes Neuronales</span>
+            <Sparkles className="w-3.5 h-3.5 text-cyan-300" />
+            <span>Aura Telecom · Plataforma Corporativa de Redes Neuronales</span>
           </div>
 
           <div className="animate-card-reveal" style={{ animationDelay: '60ms' }}>
-            <h1 className="text-4xl sm:text-5xl xl:text-[3.35rem] font-extrabold tracking-tight text-white leading-[1.06]">
-              NeuroLab{' '}
+            <h1 className="text-4xl sm:text-5xl xl:text-[3.2rem] font-extrabold tracking-tight text-white leading-[1.06]">
+              Aura Telecom{' '}
               <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-indigo-400 bg-clip-text text-transparent">
-                Enterprise
+                NeuroLab AI
               </span>
             </h1>
             <p className="text-slate-300/85 text-sm sm:text-[15px] mt-3 leading-relaxed">
-              Preprocesamiento automatizado con aislamiento de Test, diseño visual multicapa, entrenamiento real en TensorFlow/Keras y simulación matemática en vivo.
+              Ecosistema corporativo de Inteligencia Artificial con 4 áreas operativas (Retención, Red NOC 5G, Antifraude y Comercial LTV), entrenamiento real en TensorFlow/Keras y Gemelos Digitales 3D.
             </p>
           </div>
 
@@ -121,10 +121,10 @@ export default function LoginPage() {
             >
               <div className="flex items-center gap-1.5 text-indigo-400 text-xs font-bold">
                 <Cpu className="w-3.5 h-3.5 shrink-0" />
-                <span>Keras 2.21</span>
+                <span>4 Áreas IA</span>
               </div>
               <p className="text-slate-300/80 text-[11px] leading-snug">
-                Entrenamiento SSE época a época en GPU/CPU.
+                Retención, NOC 5G, Antifraude y LTV en Keras 2.21.
               </p>
             </div>
 
@@ -134,10 +134,10 @@ export default function LoginPage() {
             >
               <div className="flex items-center gap-1.5 text-cyan-400 text-xs font-bold">
                 <Layers className="w-3.5 h-3.5 shrink-0" />
-                <span>Motor 3D</span>
+                <span>Gemelo 3D</span>
               </div>
               <p className="text-slate-300/80 text-[11px] leading-snug">
-                Pesos w, gradientes y activaciones reales.
+                Escenarios 3D interactivos conectados al modelo real.
               </p>
             </div>
 
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 <span>SHA-256</span>
               </div>
               <p className="text-slate-300/80 text-[11px] leading-snug">
-                Model Registry inmutable y reportes PDF.
+                Model Registry inmutable y reportes PDF ejecutivos.
               </p>
             </div>
           </div>

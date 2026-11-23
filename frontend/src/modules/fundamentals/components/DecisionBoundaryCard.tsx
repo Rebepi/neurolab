@@ -53,7 +53,7 @@ export function DecisionBoundaryCard({
   }
 
   return (
-    <div className="bg-slate-950/65 border border-slate-800/80 rounded-xl p-4 space-y-3">
+    <div className="bg-slate-950/65 border border-cyan-500/20 rounded-xl p-4 space-y-3 shadow-inner">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Compass className="w-4 h-4 text-cyan-400" />

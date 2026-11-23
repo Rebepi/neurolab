@@ -10,7 +10,7 @@ export function FamiliesCatalogTab() {
       {NETWORK_FAMILIES.map(fam => (
         <div
           key={fam.id}
-          className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 space-y-4 hover:border-indigo-500/50 transition-all"
+          className="nl-cyber-panel nl-card-interactive animate-card-reveal rounded-2xl p-6 space-y-4 transition-all"
         >
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -77,7 +77,7 @@ export function LearningCycleTab() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 space-y-6">
+      <div className="nl-cyber-panel animate-card-reveal rounded-2xl p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -97,7 +97,7 @@ export function LearningCycleTab() {
             <button
               type="button"
               onClick={advanceIteration}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition-all"
+              className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 rounded-xl text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-500/20 nl-btn-shimmer transition-all"
             >
               <Play className="w-3.5 h-3.5" />
               Simular Paso ({stepCount})
@@ -184,7 +184,7 @@ export function GlossaryTab() {
   })
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 space-y-5">
+    <div className="nl-cyber-panel animate-card-reveal rounded-2xl p-6 space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-white font-bold text-lg">Glosario Técnico de Redes Neuronales</h3>

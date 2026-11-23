@@ -1,16 +1,63 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertCircle, Eye, EyeOff, Loader2, Plus, Shield, UserPlus, X } from 'lucide-react'
+import {
+  AlertCircle,
+  Check,
+  Copy,
+  Eye,
+  EyeOff,
+  FolderKanban,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Shield,
+  UserPlus,
+  X,
+} from 'lucide-react'
+import type { Project } from '../../../types'
 import { ROLE_COLORS, ROLE_OPTIONS, ROLE_PERMISSIONS } from '../constants'
 import { SystemSelect } from '../../../components/SystemSelect'
 import { useToast } from '../../../components/toast/ToastContext'
 
 interface CreateUserModalProps {
+  projects?: Project[]
   onClose: () => void
-  onCreate: (payload: { email: string; display_name: string; password: string; role: string }) => Promise<void>
+  onCreate: (payload: {
+    email: string
+    display_name: string
+    password: string
+    role: string
+    initialProjectIds: string[]
+  }) => Promise<void>
 }
 
-export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
+function generateSecurePassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%'
+  const arr = new Uint32Array(12)
+  crypto.getRandomValues(arr)
+  return Array.from(arr, n => chars[n % chars.length]).join('')
+}
+
+function getPasswordStrength(pw: string): {
+  level: 0 | 1 | 2 | 3
+  label: string
+  barCls: string
+  textCls: string
+} {
+  if (!pw) {
+    return { level: 0, label: 'Sin clave', barCls: 'bg-slate-800', textCls: 'text-slate-500' }
+  }
+  const hasMix = /[A-Z]/.test(pw) && /[0-9!@#$%^&*]/.test(pw)
+  if (pw.length >= 10 || (pw.length >= 8 && hasMix)) {
+    return { level: 3, label: 'Fuerte', barCls: 'bg-emerald-400', textCls: 'text-emerald-300' }
+  }
+  if (pw.length >= 6) {
+    return { level: 2, label: 'Media', barCls: 'bg-amber-400', textCls: 'text-amber-300' }
+  }
+  return { level: 1, label: 'Débil', barCls: 'bg-rose-400', textCls: 'text-rose-300' }
+}
+
+export function CreateUserModal({ projects = [], onClose, onCreate }: CreateUserModalProps) {
   const toast = useToast()
   const [form, setForm] = useState({
     display_name: '',
@@ -18,7 +65,9 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
     password: '',
     role: 'Lector',
   })
+  const [initialProjectIds, setInitialProjectIds] = useState<string[]>([])
   const [showPassword, setShowPassword] = useState(false)
+  const [copiedPw, setCopiedPw] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,6 +84,27 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
     form.email.includes('@') &&
     form.password.length >= 4
 
+  const strength = getPasswordStrength(form.password)
+
+  function handleGeneratePw() {
+    const generated = generateSecurePassword()
+    setForm(f => ({ ...f, password: generated }))
+    setShowPassword(true)
+  }
+
+  async function handleCopyPw() {
+    if (!form.password) return
+    await navigator.clipboard.writeText(form.password).catch(() => {})
+    setCopiedPw(true)
+    setTimeout(() => setCopiedPw(false), 1600)
+  }
+
+  function toggleProject(projectId: string) {
+    setInitialProjectIds(prev =>
+      prev.includes(projectId) ? prev.filter(id => id !== projectId) : [...prev, projectId]
+    )
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!isValid) return
@@ -46,6 +116,7 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
         email: form.email.trim(),
         password: form.password,
         role: form.role,
+        initialProjectIds,
       })
       onClose()
     } catch (err: any) {
@@ -67,7 +138,7 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
         aria-modal="true"
         aria-labelledby="create-user-modal-title"
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-lg nl-surface rounded-2xl border border-slate-700/60 shadow-2xl overflow-hidden animate-pop-in"
+        className="w-full max-w-xl nl-cyber-panel rounded-2xl shadow-2xl overflow-hidden animate-pop-in"
       >
         <div className="px-6 py-4 border-b border-slate-800/80 flex items-center justify-between bg-slate-950/50">
           <div className="flex items-center gap-3">
@@ -79,7 +150,7 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
                 Crear Nuevo Usuario
               </h3>
               <p className="text-slate-400 text-xs">
-                Asigna credenciales iniciales y nivel de acceso RBAC
+                Asigna credenciales iniciales, nivel RBAC y áreas iniciales
               </p>
             </div>
           </div>
@@ -94,7 +165,7 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
           {error && (
             <div className="flex items-start gap-2 p-3 bg-rose-950/40 border border-rose-800/50 rounded-xl text-rose-300 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -131,9 +202,35 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
             </div>
 
             <div>
-              <label className="text-slate-300 text-xs font-semibold mb-1.5 block">
-                Contraseña inicial
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-slate-300 text-xs font-semibold">
+                  Contraseña inicial
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleGeneratePw}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-300 hover:text-cyan-200"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Generar</span>
+                  </button>
+                  {form.password && (
+                    <button
+                      type="button"
+                      onClick={handleCopyPw}
+                      className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-slate-400 hover:text-white"
+                      title="Copiar contraseña"
+                    >
+                      {copiedPw ? (
+                        <Check className="w-3 h-3 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -150,6 +247,21 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
+              </div>
+              <div className="mt-1.5 flex items-center gap-2">
+                <div className="flex-1 grid grid-cols-3 gap-1">
+                  {[1, 2, 3].map(step => (
+                    <div
+                      key={step}
+                      className={`h-1 rounded-full transition-colors ${
+                        strength.level >= step ? strength.barCls : 'bg-slate-800'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className={`text-[10px] font-semibold ${strength.textCls}`}>
+                  {strength.label}
+                </span>
               </div>
             </div>
 
@@ -181,6 +293,35 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
                 </div>
               </div>
             </div>
+
+            {projects.length > 0 && (
+              <div className="sm:col-span-2 space-y-2">
+                <label className="text-slate-300 text-xs font-semibold flex items-center gap-1.5">
+                  <FolderKanban className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Áreas iniciales (opcional · {initialProjectIds.length} seleccionadas)</span>
+                </label>
+                <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                  {projects.map(p => {
+                    const selected = initialProjectIds.includes(p.id)
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => toggleProject(p.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all inline-flex items-center gap-1 ${
+                          selected
+                            ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {selected && <Check className="w-3 h-3 text-cyan-300" />}
+                        <span className="max-w-[200px] truncate">{p.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800/80">
@@ -207,4 +348,3 @@ export function CreateUserModal({ onClose, onCreate }: CreateUserModalProps) {
     document.body
   )
 }
-

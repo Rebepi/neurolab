@@ -39,23 +39,31 @@ import type {
   WaveState,
 } from './types'
 
-export default function NeuralVisualizerModule({ currentProject }: { currentProject?: any }) {
+export default function NeuralVisualizerModule({
+  currentProject,
+  onNavigate,
+}: {
+  currentProject?: any
+  onNavigate?: (module: string) => void
+}) {
   const { mode: globalThemeMode } = useTheme()
   const isLightMode = globalThemeMode === 'light'
 
-  const [layerSizes, setLayerSizes] = useState<number[]>([1, 6, 8, 6, 1])
+  const [layerSizes, setLayerSizes] = useState<number[]>([6, 8, 6, 1])
   const [layerActivations, setLayerActivations] = useState<ActivationType[]>([
     'linear',
     'relu',
     'relu',
-    'tanh',
     'sigmoid',
   ])
+  const [trainedVersion, setTrainedVersion] = useState<string | null>(null)
+  const [datasetName, setDatasetName] = useState<string | null>(null)
+  const [targetName, setTargetName] = useState<string>('objetivo')
   const [isPlaying, setIsPlaying] = useState(true)
-  const [simMode, setSimMode] = useState<SimMode>('forward_only')
+  const [simMode] = useState<SimMode>('forward_only')
   const [activeTab, setActiveTab] = useState<InspectorTab>('neuron')
   const [speed, setSpeed] = useState(0.26)
-  const [learningRate, setLearningRate] = useState(0.08)
+  const [learningRate] = useState(0.08)
   const [zoomPct, setZoomPct] = useState(100)
   const [isPanning, setIsPanning] = useState(false)
   const [showNumbers, setShowNumbers] = useState(true)
@@ -218,21 +226,8 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
   }, [hoveredNeuron, selectedNeuron, layerActivations])
 
   useEffect(() => {
-    rebuildNetwork(layerSizes, layerActivations)
-  }, [])
-
-  useEffect(() => {
     if (!currentProject?.id) return
-    api.getProjectVisualizerState(currentProject.id, 20)
-      .then(data => {
-        if (data.feature_names && data.feature_names.length > 0) {
-          setFeatureNames(data.feature_names)
-        }
-        if (data.samples && data.samples.length > 0) {
-          setDatasetSamples(data.samples)
-        }
-      })
-      .catch(() => {})
+    syncWithRealTrainedModelOrArchitecture()
   }, [currentProject?.id])
 
   const spawnLayerWave = useCallback((fromLayer: number, direction: 'forward' | 'backward') => {
@@ -481,19 +476,6 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
     ws.currentLayer = (ws.currentLayer + 1) % (numLayers - 1)
   }
 
-  function executeSingleRealGradientStep() {
-    const nodes = nodesRef.current
-    const synapses = synapsesRef.current
-    applyMetrics(computeForwardPassMath(nodes, synapses, layerActivations, targetValues))
-    for (let l = nodes.length - 1; l >= 1; l--) {
-      computeLayerBackprop(nodes, synapses, l, layerActivations, targetValues, learningRate)
-    }
-    applyMetrics(computeForwardPassMath(nodes, synapses, layerActivations, targetValues))
-    setEpochCount(e => e + 1)
-    setPhaseLabel('BACKPROPAGATION')
-    spawnLayerWave(nodes.length - 1, 'backward')
-  }
-
   function handleInputSliderChange(idx: number, val: number) {
     const updated = [...inputValues]
     updated[idx] = val
@@ -503,77 +485,6 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
       nodesRef.current[0][idx].z = val
       applyMetrics(computeForwardPassMath(nodesRef.current, synapsesRef.current, layerActivations, targetValues))
     }
-  }
-
-  function handleTargetChange(idx: number, val: number) {
-    const updated = [...targetValues]
-    updated[idx] = val
-    setTargetValues(updated)
-    const outLayer = nodesRef.current[nodesRef.current.length - 1]
-    if (outLayer?.[idx]) {
-      outLayer[idx].targetVal = val
-      applyMetrics(computeForwardPassMath(nodesRef.current, synapsesRef.current, layerActivations, updated))
-    }
-  }
-
-  function handleSelectedBiasChange(newBias: number) {
-    const activeTarget = selectedNeuron || (inspectData.node ? { layerIdx: inspectData.node.layerIdx, neuronIdx: inspectData.node.neuronIdx } : null)
-    if (!activeTarget || activeTarget.layerIdx === 0) return
-    const node = nodesRef.current[activeTarget.layerIdx]?.[activeTarget.neuronIdx]
-    if (!node) return
-    node.bias = Number(newBias.toFixed(4))
-    applyMetrics(computeForwardPassMath(nodesRef.current, synapsesRef.current, layerActivations, targetValues))
-  }
-
-  function handleSelectedWeightChange(fromNeuronIdx: number, newWeight: number) {
-    const activeTarget = selectedNeuron || (inspectData.node ? { layerIdx: inspectData.node.layerIdx, neuronIdx: inspectData.node.neuronIdx } : null)
-    if (!activeTarget || activeTarget.layerIdx === 0) return
-    const syn = synapsesRef.current.find(
-      s => s.toLayer === activeTarget.layerIdx &&
-        s.toNeuron === activeTarget.neuronIdx &&
-        s.fromLayer === activeTarget.layerIdx - 1 &&
-        s.fromNeuron === fromNeuronIdx
-    )
-    if (!syn) return
-    syn.weight = Number(newWeight.toFixed(4))
-    applyMetrics(computeForwardPassMath(nodesRef.current, synapsesRef.current, layerActivations, targetValues))
-  }
-
-  function setExactLayerCount(layerIdx: number, newCount: number) {
-    const clamped = Math.max(1, Math.min(MAX_NEURONS_PER_LAYER, Math.round(newCount) || 1))
-    const nextSizes = layerSizes.map((sz, i) => (i === layerIdx ? clamped : sz))
-    setLayerSizes(nextSizes)
-    rebuildNetwork(nextSizes, layerActivations)
-  }
-
-  function updateLayerActivation(layerIdx: number, act: ActivationType) {
-    const nextActs = [...layerActivations]
-    nextActs[layerIdx] = act
-    setLayerActivations(nextActs)
-    applyMetrics(computeForwardPassMath(nodesRef.current, synapsesRef.current, nextActs, targetValues))
-  }
-
-  function addHiddenLayer() {
-    if (layerSizes.length >= 8) return
-    const nextSizes = [...layerSizes]
-    nextSizes.splice(nextSizes.length - 1, 0, 6)
-    const nextActs = [...layerActivations]
-    nextActs.splice(nextActs.length - 1, 0, 'relu')
-    setLayerSizes(nextSizes)
-    setLayerActivations(nextActs)
-    rebuildNetwork(nextSizes, nextActs)
-  }
-
-  function removeHiddenLayer() {
-    if (layerSizes.length <= 3) return
-    const nextSizes = [...layerSizes]
-    nextSizes.splice(nextSizes.length - 2, 1)
-    const nextActs = [...layerActivations]
-    nextActs.splice(nextActs.length - 2, 1)
-    setLayerSizes(nextSizes)
-    setLayerActivations(nextActs)
-    setSelectedNeuron(null)
-    rebuildNetwork(nextSizes, nextActs)
   }
 
   function loadDatasetSampleRow(sampleIdx: number) {
@@ -603,15 +514,19 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
     if (!currentProject) return
     try {
       const state = await api.getProjectVisualizerState(currentProject.id, 18)
+      setDatasetName(state.dataset_name || null)
+      setTargetName(state.target_name || 'objetivo')
       if (state.feature_names?.length > 0) {
         setFeatureNames(state.feature_names)
       }
       if (state.samples?.length > 0) {
         setDatasetSamples(state.samples)
+        setSelectedSampleIdx(0)
       }
 
       if (state.trained_model) {
         const tm = state.trained_model
+        setTrainedVersion(tm.version || 'v1.0.0')
         const acts = (tm.layer_activations as ActivationType[]) || tm.layer_sizes.map((_: number, i: number) => i === 0 ? 'linear' : 'relu')
         const firstSampleInputs = state.samples?.[0]?.inputs || inputValues
         const firstSampleTargets = state.samples?.[0]?.targets || targetValues
@@ -619,6 +534,7 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
         setLayerActivations(acts)
         setInputValues(firstSampleInputs)
         setTargetValues(firstSampleTargets)
+        setSelectedNeuron(null)
         rebuildNetwork(
           tm.layer_sizes,
           acts,
@@ -631,6 +547,7 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
         return
       }
 
+      setTrainedVersion(null)
       const archs = await api.getProjectArchitectures(currentProject.id)
       if (archs.length > 0) {
         const latest = archs[0]
@@ -667,25 +584,16 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
         isPlaying={isPlaying}
         onTogglePlay={() => setIsPlaying(p => !p)}
         onStepWave={triggerSingleStepWave}
-        onResetNetwork={() => {
-          rebuildNetwork(layerSizes, layerActivations)
-          setEpochCount(1)
-        }}
-        simMode={simMode}
-        onSelectSimMode={mode => {
-          setSimMode(mode)
-          if (mode === 'forward_only') waveStateRef.current.direction = 'forward'
-        }}
-        hiddenLayerCount={layerSizes.length - 2}
-        layerCount={layerSizes.length}
-        onRemoveHiddenLayer={removeHiddenLayer}
-        onAddHiddenLayer={addHiddenLayer}
+        onResetNetwork={syncWithRealTrainedModelOrArchitecture}
         totalNeurons={totalNeurons}
         totalSynapses={totalSynapses}
         liveLoss={liveLoss}
         liveAcc={liveAcc}
         hasProject={Boolean(currentProject)}
+        trainedVersion={trainedVersion}
+        datasetName={datasetName}
         onSyncProject={syncWithRealTrainedModelOrArchitecture}
+        onOpenTwin3D={onNavigate ? () => onNavigate('inference') : undefined}
         isFullscreen={isFullscreen}
         onToggleFullscreen={() => {
           resetCamera()
@@ -695,7 +603,7 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
 
       <div className={`grid grid-cols-1 lg:grid-cols-12 gap-4 ${isFullscreen ? 'flex-1 min-h-0' : ''}`}>
         <div className={`lg:col-span-8 ${isFullscreen ? 'flex flex-col min-h-0 h-full' : ''}`}>
-          <div className={`nl-surface rounded-2xl overflow-hidden flex flex-col transition-shadow duration-300 ${isPlaying ? 'nl-accent-glow' : ''} ${isFullscreen ? 'flex-1 min-h-0 h-full' : ''}`}>
+          <div className={`nl-cyber-panel animate-card-reveal rounded-2xl overflow-hidden flex flex-col transition-shadow duration-300 ${isPlaying ? 'nl-accent-glow' : ''} ${isFullscreen ? 'flex-1 min-h-0 h-full' : ''}`}>
             <div className={`relative w-full select-none ${isFullscreen ? 'flex-1 min-h-0' : 'h-[540px] xl:h-[600px]'}`}>
               <canvas
                 ref={canvasRef}
@@ -741,7 +649,7 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
         </div>
 
         <div className={`lg:col-span-4 ${isFullscreen ? 'min-h-0 h-full' : ''}`}>
-          <div className="nl-surface rounded-2xl overflow-hidden flex flex-col h-full">
+          <div className="nl-cyber-panel animate-card-reveal nl-stagger-1 rounded-2xl overflow-hidden flex flex-col h-full">
             <div className="grid grid-cols-3 border-b border-slate-800 bg-slate-950/60 p-1 gap-1">
               {([
                 { id: 'neuron', label: '1. Neurona', Icon: Eye },
@@ -774,9 +682,6 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
                   layerCount={layerSizes.length}
                   hasSelectedNeuron={Boolean(selectedNeuron)}
                   onClearSelection={() => setSelectedNeuron(null)}
-                  onStepGradient={executeSingleRealGradientStep}
-                  onBiasChange={handleSelectedBiasChange}
-                  onWeightChange={handleSelectedWeightChange}
                 />
               )}
 
@@ -784,15 +689,9 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
                 <TopologyInspectorTab
                   layerSizes={layerSizes}
                   layerActivations={layerActivations}
-                  onApplyPreset={(sizes, acts) => {
-                    setLayerSizes(sizes)
-                    setLayerActivations(acts)
-                    setSelectedNeuron(null)
-                    resetCamera()
-                    rebuildNetwork(sizes, acts)
-                  }}
-                  onUpdateLayerActivation={updateLayerActivation}
-                  onSetExactLayerCount={setExactLayerCount}
+                  trainedVersion={trainedVersion}
+                  targetName={targetName}
+                  onGoToArchitectures={onNavigate ? () => onNavigate('architectures') : undefined}
                 />
               )}
 
@@ -806,10 +705,8 @@ export default function NeuralVisualizerModule({ currentProject }: { currentProj
                   inputValues={inputValues}
                   targetValues={targetValues}
                   featureNames={featureNames}
-                  learningRate={learningRate}
+                  targetName={targetName}
                   onInputSliderChange={handleInputSliderChange}
-                  onTargetChange={handleTargetChange}
-                  onLearningRateChange={setLearningRate}
                 />
               )}
             </div>

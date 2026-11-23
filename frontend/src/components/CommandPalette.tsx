@@ -2,11 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import {
   Search, LayoutDashboard, Sparkles, Brain, FolderKanban,
   Database, Network, Play, BarChart2, Package, FileText,
-  Settings, Sun, Moon, Palette, Shield, ArrowRight, X, CornerDownLeft, ScrollText
+  Settings, Sun, Moon, Palette, Shield, ArrowRight, X, CornerDownLeft, ScrollText, BookOpen
 } from 'lucide-react'
 import { useTheme, PALETTE_META, AccentPalette } from '../context/ThemeContext'
-import { useAuth } from '../context/AuthContext'
-import { UserRole } from '../types'
 
 interface CommandPaletteProps {
   open: boolean
@@ -29,7 +27,6 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const { mode, toggleMode, setPalette } = useTheme()
-  const { switchDemoRole } = useAuth()
 
   useEffect(() => {
     if (open) {
@@ -42,34 +39,43 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
   const items: CommandItem[] = [
     {
       id: 'nav-dashboard',
-      category: 'Módulos de Ingeniería',
-      title: 'M01 · Centro de Control & Telemetría',
-      subtitle: 'Resumen ejecutivo, topología activa y métricas de salud',
+      category: 'Centro Corporativo Aura Telecom',
+      title: 'M01 · Centro de Mando Multi-Área',
+      subtitle: 'Las 4 áreas de Aura Telecom y topología neuronal viva',
       shortcut: 'G D',
       Icon: LayoutDashboard,
       action: () => { onNavigate('dashboard'); onClose() }
     },
     {
       id: 'nav-visualizer',
-      category: 'Módulos de Ingeniería',
-      title: 'M11 · Motor Sináptico Matemático en Vivo',
-      subtitle: 'Visualización lenta de capas ocultas, pesos w y gradientes reales',
+      category: 'Centro Corporativo Aura Telecom',
+      title: 'M11 · Inspector Sináptico Real (.keras)',
+      subtitle: 'Pesos W, sesgos b y activaciones reales del modelo entrenado',
       shortcut: 'G V',
       Icon: Sparkles,
       action: () => { onNavigate('visualizer'); onClose() }
     },
     {
+      id: 'nav-fundamentals',
+      category: 'Centro Corporativo Aura Telecom',
+      title: 'M03 · Fundamentos de Redes Neuronales',
+      subtitle: 'Simulador interactivo de neurona, activaciones, catálogo y glosario',
+      shortcut: 'G F',
+      Icon: BookOpen,
+      action: () => { onNavigate('fundamentals'); onClose() }
+    },
+    {
       id: 'nav-projects',
-      category: 'Pipeline Secuencial IA',
-      title: 'Paso 01 · Proyectos de IA & Workspaces (M02)',
-      subtitle: 'Crear proyectos, gestionar miembros y alcance del problema',
+      category: 'Pipeline por Área IA',
+      title: 'Paso 01 · Áreas Corporativas Aura Telecom (M02)',
+      subtitle: 'Gestionar áreas operativas, miembros y alcance',
       shortcut: '1',
       Icon: FolderKanban,
       action: () => { onNavigate('projects'); onClose() }
     },
     {
       id: 'nav-datasets',
-      category: 'Pipeline Secuencial IA',
+      category: 'Pipeline por Área IA',
       title: 'Paso 02 · Datasets, Auto-EDA & Splits 70/15/15 (M05)',
       subtitle: 'Cargar CSV, limpiar nulos, One-Hot y aislar conjunto Test',
       shortcut: '2',
@@ -78,25 +84,25 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
     },
     {
       id: 'nav-architectures',
-      category: 'Pipeline Secuencial IA',
+      category: 'Pipeline por Área IA',
       title: 'Paso 03 · Diseñador de Arquitecturas Neuronales (M04)',
-      subtitle: 'Configurar capas Dense/Conv/LSTM, activaciones y código Keras',
+      subtitle: 'Configurar capas Dense/Dropout/BatchNorm y código Keras',
       shortcut: '3',
       Icon: Network,
       action: () => { onNavigate('architectures'); onClose() }
     },
     {
       id: 'nav-training',
-      category: 'Pipeline Secuencial IA',
+      category: 'Pipeline por Área IA',
       title: 'Paso 04 · Entrenamientos TensorFlow/Keras en Vivo (M06)',
-      subtitle: 'Lanzar trabajos reales con streaming SSE época por época',
+      subtitle: 'Lanzar entrenamientos reales con streaming SSE época por época',
       shortcut: '4',
       Icon: Play,
       action: () => { onNavigate('training'); onClose() }
     },
     {
       id: 'nav-evaluation',
-      category: 'Pipeline Secuencial IA',
+      category: 'Pipeline por Área IA',
       title: 'Paso 05 · Evaluación, Curvas & Matriz de Confusión (M07)',
       subtitle: 'Inspeccionar Loss/Accuracy y evaluar contra Test aislado',
       shortcut: '5',
@@ -105,20 +111,21 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
     },
     {
       id: 'nav-models',
-      category: 'Pipeline Secuencial IA',
-      title: 'Paso 06 · Model Registry & Inferencia en Vivo (M08)',
-      subtitle: 'Versiones inmutables SHA-256, inferencia y descarga .keras',
+      category: 'Pipeline por Área IA',
+      title: 'Paso 06 · Model Registry & Certificación SHA-256 (M08)',
+      subtitle: 'Versiones inmutables SHA-256 y descarga .keras',
       shortcut: '6',
       Icon: Package,
       action: () => { onNavigate('models'); onClose() }
     },
     {
-      id: 'nav-fundamentals',
-      category: 'Módulos de Ingeniería',
-      title: 'M03 · Laboratorio Interactivo de Fundamentos IA',
-      subtitle: 'Simulador de neurona única, funciones de activación y glosario',
+      id: 'nav-inference',
+      category: 'Pipeline por Área IA',
+      title: 'Paso 07 · Gemelo Digital 3D & Uso Real del Modelo (M10)',
+      subtitle: 'Inferencia real Keras, simulación What-If y radar batch 3D',
+      shortcut: '7',
       Icon: Brain,
-      action: () => { onNavigate('fundamentals'); onClose() }
+      action: () => { onNavigate('inference'); onClose() }
     },
     {
       id: 'nav-reports',
@@ -168,14 +175,6 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
       subtitle: meta.subtitle,
       Icon: Palette,
       action: () => { setPalette(key); onClose() }
-    })),
-    ...(['Administrador', 'Responsable de proyecto', 'Ingeniero/analista de IA', 'Revisor', 'Lector'] as UserRole[]).map(r => ({
-      id: `role-${r}`,
-      category: 'Cambio Rápido de Rol (RBAC)',
-      title: `Activar Rol: ${r}`,
-      subtitle: 'Cambiar permisos activos de sesión instantáneamente',
-      Icon: Shield,
-      action: () => { switchDemoRole(r); onClose() }
     }))
   ]
 
@@ -218,13 +217,13 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4">
       <div
-        className="fixed inset-0 bg-black/55 backdrop-blur-sm animate-backdrop-fade"
+        className="fixed inset-0 bg-black/65 backdrop-blur-md animate-backdrop-fade"
         onClick={onClose}
       />
 
-      <div className="relative z-10 w-full max-w-2xl nl-glass rounded-2xl overflow-hidden shadow-2xl animate-pop-in">
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-800">
-          <Search className="w-4 h-4 text-indigo-400 shrink-0" />
+      <div className="relative z-10 w-full max-w-2xl nl-cyber-panel rounded-2xl overflow-hidden shadow-2xl animate-pop-in">
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-800/80">
+          <Search className="w-4 h-4 text-cyan-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -256,7 +255,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
                   onClick={item.action}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
-                    isSel ? 'bg-indigo-600/15 border border-indigo-500/40' : 'border border-transparent hover:bg-slate-800/50'
+                    isSel ? 'bg-cyan-500/15 border border-cyan-500/40 shadow-sm shadow-cyan-500/10' : 'border border-transparent hover:bg-slate-800/50'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -283,7 +282,7 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
                       </span>
                     )}
                     <ArrowRight className={`w-3.5 h-3.5 transition-transform ${
-                      isSel ? 'text-indigo-400 translate-x-0.5' : 'text-slate-500'
+                      isSel ? 'text-cyan-400 translate-x-0.5' : 'text-slate-500'
                     }`} />
                   </div>
                 </button>

@@ -35,6 +35,7 @@ export default defineConfig({
     proxy: sharedProxy
   },
   build: {
+    emptyOutDir: false,
     rollupOptions: {
       output: {
         manualChunks(id) {

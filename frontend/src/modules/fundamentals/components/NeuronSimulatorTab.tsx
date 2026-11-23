@@ -46,7 +46,7 @@ export function NeuronSimulatorTab() {
 
   return (
     <div className="space-y-5">
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="nl-cyber-panel animate-card-reveal rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 mr-1">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
@@ -89,7 +89,7 @@ export function NeuronSimulatorTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-7 bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="lg:col-span-7 nl-cyber-panel nl-card-interactive animate-card-reveal nl-stagger-1 rounded-2xl p-6 shadow-xl space-y-5">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-white font-bold text-lg flex items-center gap-2">
@@ -170,7 +170,7 @@ export function NeuronSimulatorTab() {
           </div>
         </div>
 
-        <div className="lg:col-span-5 bg-slate-900/60 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="lg:col-span-5 nl-cyber-panel nl-card-interactive animate-card-reveal nl-stagger-2 rounded-2xl p-6 shadow-xl space-y-5">
           <div className="flex items-center justify-between">
             <h4 className="text-white font-bold text-base flex items-center gap-2">
               <Sliders className="w-4 h-4 text-indigo-400" />
