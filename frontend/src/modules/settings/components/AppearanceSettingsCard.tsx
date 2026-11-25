@@ -1,4 +1,4 @@
-import { Bell, Check, LayoutGrid, Moon, Palette, RotateCcw, Server, Sparkles, Sun, UserCheck } from 'lucide-react'
+import { Bell, Check, LayoutGrid, Monitor, Moon, Palette, RotateCcw, Server, Sparkles, Sun, UserCheck } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme, PALETTE_META, AccentPalette } from '../../../context/ThemeContext'
 import type { ComputeTelemetry, User } from '../../../types'
@@ -29,7 +29,7 @@ interface AppearanceSettingsCardProps {
 }
 
 export function AppearanceSettingsCard({ currentUser, telemetry }: AppearanceSettingsCardProps) {
-  const { mode, palette, setMode, setPalette } = useTheme()
+  const { preference, systemMode, palette, setMode, setPalette } = useTheme()
   const toast = useToast()
   const [toastPosition, setToastPositionState] = useState<ToastPosition>(getToastPosition)
   const [toastDuration, setToastDurationState] = useState<ToastDurationPreference>(
@@ -49,11 +49,11 @@ export function AppearanceSettingsCard({ currentUser, telemetry }: AppearanceSet
   }
 
   function handleResetAppearance() {
-    setMode('light')
+    setMode('system')
     setPalette('emerald_copper')
     handleToggleMotion(false)
     handleSetDensity(false)
-    toast.info('Apariencia restablecida', 'Tema claro, paleta esmeralda y densidad cómoda')
+    toast.info('Apariencia restablecida', 'Tema automático del sistema, paleta esmeralda y densidad cómoda')
   }
 
   const roleDescription = currentUser?.role ? ROLE_PERMISSIONS[currentUser.role] : undefined
@@ -80,33 +80,55 @@ export function AppearanceSettingsCard({ currentUser, telemetry }: AppearanceSet
         </div>
 
         <div className="space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Modo de Luminancia
-          </p>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Modo de Luminancia
+            </p>
+            {preference === 'system' && (
+              <span className="text-[10.5px] font-mono text-cyan-400">
+                Sistema detectado: {systemMode === 'dark' ? 'Oscuro' : 'Claro'}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <button
               type="button"
-              onClick={() => setMode('light')}
-              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                mode === 'light'
+              onClick={() => setMode('system')}
+              aria-pressed={preference === 'system'}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                preference === 'system'
                   ? 'nl-accent-bg nl-accent-glow text-white border-transparent'
                   : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800/70'
               }`}
             >
-              <Sun className="w-4 h-4" />
-              <span>Claro (Editorial)</span>
+              <Monitor className="w-4 h-4 shrink-0" />
+              <span className="truncate">Sistema (Auto)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('light')}
+              aria-pressed={preference === 'light'}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                preference === 'light'
+                  ? 'nl-accent-bg nl-accent-glow text-white border-transparent'
+                  : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800/70'
+              }`}
+            >
+              <Sun className="w-4 h-4 shrink-0" />
+              <span className="truncate">Claro (Editorial)</span>
             </button>
             <button
               type="button"
               onClick={() => setMode('dark')}
-              className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                mode === 'dark'
+              aria-pressed={preference === 'dark'}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                preference === 'dark'
                   ? 'nl-accent-bg nl-accent-glow text-white border-transparent'
                   : 'bg-slate-950/70 border-slate-800 text-slate-300 hover:bg-slate-800/70'
               }`}
             >
-              <Moon className="w-4 h-4" />
-              <span>Oscuro (Obsidian)</span>
+              <Moon className="w-4 h-4 shrink-0" />
+              <span className="truncate">Oscuro (Obsidian)</span>
             </button>
           </div>
         </div>

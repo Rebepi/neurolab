@@ -111,6 +111,7 @@ in float vDynamicGlow;
 uniform float uTime;
 uniform float uPassOpacity;
 uniform float uScatter;
+uniform float uLightMode;
 
 out vec4 fragColor;
 
@@ -152,10 +153,52 @@ void main() {
     dissolveMask = smoothstep(waveFront - 0.18, waveFront + 0.05, surfDist);
   }
 
+  float stemFade = 1.0;
+  if (vRegion >= 1.5 && vRegion < 2.5) {
+    stemFade = smoothstep(-1.02, -0.58, vLocalPos.y);
+  }
+
+  if (uLightMode > 0.5) {
+    vec3 sulcusColor = vec3(0.08, 0.17, 0.46);
+    vec3 gyrusColor = vec3(0.03, 0.44, 0.58);
+    vec3 rimColor = vec3(0.11, 0.52, 0.78);
+
+    if (vRegion > 0.5 && vRegion < 1.5) {
+      sulcusColor = vec3(0.10, 0.22, 0.54);
+      gyrusColor = vec3(0.05, 0.44, 0.74);
+      rimColor = vec3(0.16, 0.50, 0.88);
+    } else if (vRegion >= 1.5 && vRegion < 2.5) {
+      sulcusColor = vec3(0.24, 0.14, 0.52);
+      gyrusColor = vec3(0.35, 0.26, 0.76);
+      rimColor = vec3(0.45, 0.36, 0.88);
+    } else if (vRegion >= 2.5) {
+      sulcusColor = vec3(0.04, 0.34, 0.44);
+      gyrusColor = vec3(0.06, 0.52, 0.58);
+      rimColor = vec3(0.10, 0.64, 0.70);
+    }
+
+    vec3 baseCol = mix(sulcusColor, gyrusColor, gyrusCrest);
+    baseCol = mix(baseCol, rimColor, clamp(fresnel * 0.68 + ridgeLip * 0.22, 0.0, 0.82));
+    baseCol += vec3(0.04, 0.20, 0.34) * (diff1 * 0.22 * gyrusCrest + microContour * 0.55);
+    baseCol += vec3(0.08, 0.15, 0.44) * diff2 * 0.18;
+    baseCol = mix(baseCol, vec3(0.05, 0.62, 0.74), clamp(vDynamicGlow * 0.48 + spec * 0.28 * gyrusCrest, 0.0, 0.72));
+    baseCol = mix(baseCol, vec3(0.03, 0.52, 0.72), clamp(shockEdge * 0.88, 0.0, 1.0));
+    baseCol *= 1.0 - sulcusLine * 0.34;
+
+    float baseAlpha = 0.095 + fresnel * 0.56 + gyrusCrest * 0.12 + ridgeLip * 0.08 + spec * 0.14;
+    baseAlpha += vDynamicGlow * 0.28 + shockEdge * 0.48;
+    if (vRegion >= 2.5) {
+      baseAlpha += 0.24;
+    }
+
+    float finalAlpha = clamp(baseAlpha * uPassOpacity * stemFade * dissolveMask, 0.0, 0.86);
+    fragColor = vec4(baseCol, finalAlpha);
+    return;
+  }
+
   vec3 sulcusColor = vec3(0.16, 0.19, 0.58);
   vec3 gyrusColor = vec3(0.08, 0.68, 0.78);
   vec3 rimColor = vec3(0.36, 0.93, 0.88);
-  float stemFade = 1.0;
 
   if (vRegion > 0.5 && vRegion < 1.5) {
     sulcusColor = vec3(0.11, 0.25, 0.62);
@@ -165,7 +208,6 @@ void main() {
     sulcusColor = vec3(0.24, 0.14, 0.52);
     gyrusColor = vec3(0.55, 0.42, 0.96);
     rimColor = vec3(0.76, 0.62, 1.0);
-    stemFade = smoothstep(-1.02, -0.58, vLocalPos.y);
   } else if (vRegion >= 2.5) {
     sulcusColor = vec3(0.06, 0.45, 0.42);
     gyrusColor = vec3(0.18, 0.85, 0.75);
@@ -251,6 +293,7 @@ in float vBoost;
 uniform float uTime;
 uniform float uBaseAlpha;
 uniform float uScatter;
+uniform float uLightMode;
 
 out vec4 fragColor;
 
@@ -276,14 +319,26 @@ void main() {
   float revAbs = -revDist;
   float revPulse = (smoothstep(0.22, 0.0, revAbs) / (1.0 + revAbs * 9.0)) * 0.65;
 
+  float pulse = clamp(tailPulse + revPulse, 0.0, 1.25);
+  float scatterFlash = sin(min(1.0, uScatter * 2.8) * 3.14159) * 0.75;
+  float scatterFade = 1.0 - smoothstep(0.06, 0.34, uScatter);
+
+  if (uLightMode > 0.5) {
+    vec3 tealCol = vec3(0.03, 0.50, 0.55);
+    vec3 indigoCol = vec3(0.20, 0.30, 0.82);
+    vec3 violetCol = vec3(0.45, 0.24, 0.80);
+    vec3 tractHue = mix(tealCol, mix(indigoCol, violetCol, smoothstep(0.45, 1.0, colorMix)), smoothstep(0.0, 0.7, colorMix));
+    vec3 finalCol = mix(tractHue, vec3(0.02, 0.62, 0.84), clamp(pulse * 0.68 + vBoost * 0.60 + scatterFlash * 0.5, 0.0, 1.0));
+    float alpha = (uBaseAlpha * 1.35 + pulse * 0.76 + vBoost * 0.65 + scatterFlash * 0.32) * vDepthFade * scatterFade;
+    fragColor = vec4(finalCol, clamp(alpha, 0.0, 0.92));
+    return;
+  }
+
   vec3 tealCol = vec3(0.18, 0.88, 0.8);
   vec3 indigoCol = vec3(0.42, 0.54, 0.99);
   vec3 violetCol = vec3(0.75, 0.52, 0.98);
   vec3 tractHue = mix(tealCol, mix(indigoCol, violetCol, smoothstep(0.45, 1.0, colorMix)), smoothstep(0.0, 0.7, colorMix));
 
-  float pulse = clamp(tailPulse + revPulse, 0.0, 1.25);
-  float scatterFlash = sin(min(1.0, uScatter * 2.8) * 3.14159) * 0.75;
-  float scatterFade = 1.0 - smoothstep(0.06, 0.34, uScatter);
   vec3 finalCol = mix(tractHue * 0.8, vec3(0.76, 0.98, 1.0), clamp(pulse * 0.72 + vBoost * 0.65 + scatterFlash * 0.55, 0.0, 1.0));
   float alpha = (uBaseAlpha + pulse * 0.86 + vBoost * 0.75 + scatterFlash * 0.35) * vDepthFade * scatterFade;
 
@@ -363,6 +418,8 @@ in float vAlpha;
 in float vTint;
 in float vExcite;
 
+uniform float uLightMode;
+
 out vec4 fragColor;
 
 void main() {
@@ -375,6 +432,17 @@ void main() {
   float inv = 1.0 - r2;
   float halo = inv * inv;
   float core = halo * halo * halo;
+
+  if (uLightMode > 0.5) {
+    vec3 c1 = vec3(0.04, 0.54, 0.56);
+    vec3 c2 = vec3(0.18, 0.34, 0.84);
+    vec3 c3 = vec3(0.46, 0.24, 0.82);
+    vec3 hue = mix(c1, mix(c2, c3, smoothstep(0.45, 1.0, vTint)), smoothstep(0.0, 0.7, vTint));
+    vec3 col = mix(hue, vec3(0.04, 0.70, 0.84), clamp(core * 0.65 + vExcite * 0.42, 0.0, 1.0));
+    float alpha = (core * 0.90 + halo * 0.38) * vAlpha * 0.82;
+    fragColor = vec4(col, clamp(alpha, 0.0, 0.92));
+    return;
+  }
 
   vec3 c1 = vec3(0.18, 0.89, 0.78);
   vec3 c2 = vec3(0.38, 0.56, 0.99);

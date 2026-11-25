@@ -185,7 +185,11 @@ export function SileoToasts({
 }) {
   const [mounted] = useState(() => typeof document !== 'undefined')
   const [position, setPosition] = useState<ToastPosition>(getToastPosition)
+  const [isLightTheme, setIsLightTheme] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'light'
+  )
   const previousPosition = useRef(position)
+  const previousTheme = useRef(isLightTheme)
 
   useEffect(() => {
     const update = (event: Event) =>
@@ -196,6 +200,19 @@ export function SileoToasts({
       window.removeEventListener(TOAST_POSITION_EVENT, update)
       window.removeEventListener('storage', update)
     }
+  }, [])
+
+  useEffect(() => {
+    const syncTheme = () => {
+      setIsLightTheme(document.documentElement.getAttribute('data-theme') === 'light')
+    }
+    syncTheme()
+    const observer = new MutationObserver(syncTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
+    return () => observer.disconnect()
   }, [])
 
   const [hovered, setHovered] = useState(false)
@@ -233,9 +250,10 @@ export function SileoToasts({
 
   useEffect(() => {
     if (!mounted) return
-    if (previousPosition.current !== position) {
+    if (previousPosition.current !== position || previousTheme.current !== isLightTheme) {
       shown.current.clear()
       previousPosition.current = position
+      previousTheme.current = isLightTheme
     }
     const current = new Set(toasts.map(toast => toast.id))
     for (const id of shown.current.keys()) {
@@ -253,7 +271,7 @@ export function SileoToasts({
         description: <ToastDescription toast={toast} onDismiss={onDismiss} />,
         position,
         duration: null,
-        fill: '#1a1a1a',
+        fill: isLightTheme ? '#ffffff' : '#1a1a1a',
         roundness: 16,
         autopilot: { expand: 150, collapse: 0 },
         styles: { title: 'nl-toast-title', description: 'nl-toast-description' },
@@ -261,7 +279,7 @@ export function SileoToasts({
       sileo.show(options)
       shown.current.set(toast.id, toast)
     }
-  }, [mounted, toasts, onDismiss, position])
+  }, [mounted, toasts, onDismiss, position, isLightTheme])
 
   const findToast = (target: EventTarget | null) =>
     target instanceof Element ? target.closest<HTMLElement>('[data-sileo-toast]') : null

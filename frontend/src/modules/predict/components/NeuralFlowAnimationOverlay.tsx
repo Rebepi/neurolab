@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import type { LayerTrace, PredictionResponse } from '../../../types/index'
 import { InfoTip, SystemTooltip } from '../../../components/InfoTip'
+import { useTheme } from '../../../context/ThemeContext'
 import type { InterpretedVerdict } from '../fieldDictionary'
 
 export interface AnimatedInputItem {
@@ -128,7 +129,47 @@ function cubicBezier(
   )
 }
 
-function getTonePalette(tone?: InterpretedVerdict['tone']) {
+function getTonePalette(tone?: InterpretedVerdict['tone'], isLight = false) {
+  if (isLight) {
+    if (tone === 'danger') {
+      return {
+        primary: '#e11d48',
+        secondary: '#be123c',
+        bright: '#9f1239',
+        rgb: '225, 29, 72',
+        glow: 'rgba(225, 29, 72, 0.28)',
+        soft: 'rgba(225, 29, 72, 0.14)',
+      }
+    }
+    if (tone === 'warn') {
+      return {
+        primary: '#d97706',
+        secondary: '#b45309',
+        bright: '#92400e',
+        rgb: '217, 119, 6',
+        glow: 'rgba(217, 119, 6, 0.26)',
+        soft: 'rgba(217, 119, 6, 0.14)',
+      }
+    }
+    if (tone === 'safe') {
+      return {
+        primary: '#059669',
+        secondary: '#047857',
+        bright: '#065f46',
+        rgb: '5, 150, 105',
+        glow: 'rgba(5, 150, 105, 0.26)',
+        soft: 'rgba(5, 150, 105, 0.14)',
+      }
+    }
+    return {
+      primary: '#0284c7',
+      secondary: '#0369a1',
+      bright: '#075985',
+      rgb: '2, 132, 199',
+      glow: 'rgba(2, 132, 199, 0.26)',
+      soft: 'rgba(2, 132, 199, 0.14)',
+    }
+  }
   if (tone === 'danger') {
     return {
       primary: '#fb7185',
@@ -176,6 +217,15 @@ const LAYER_THEME = [
   { hex: '#a78bfa', bright: '#ede9fe', rgb: '167, 139, 250', formula: 'h = φ(W·h + b)' },
   { hex: '#c084fc', bright: '#f3e8ff', rgb: '192, 132, 252', formula: 'h = φ(W·h + b)' },
   { hex: '#22d3ee', bright: '#cffafe', rgb: '34, 211, 238', formula: 'ŷ = σ(W·h + b)' },
+]
+
+const LAYER_THEME_LIGHT = [
+  { hex: '#0d9488', bright: '#0f766e', rgb: '13, 148, 136', formula: 'z = (x − μ) / σ' },
+  { hex: '#0284c7', bright: '#0369a1', rgb: '2, 132, 199', formula: 'h = ReLU(W·x + b)' },
+  { hex: '#4f46e5', bright: '#4338ca', rgb: '79, 70, 229', formula: 'h = φ(W·h + b)' },
+  { hex: '#7c3aed', bright: '#6d28d9', rgb: '124, 58, 237', formula: 'h = φ(W·h + b)' },
+  { hex: '#9333ea', bright: '#7e22ce', rgb: '147, 51, 234', formula: 'h = φ(W·h + b)' },
+  { hex: '#0891b2', bright: '#0e7490', rgb: '8, 145, 178', formula: 'ŷ = σ(W·h + b)' },
 ]
 
 function buildFallbackTraces(inputCount: number): LayerTrace[] {
@@ -273,6 +323,8 @@ export function NeuralFlowAnimationOverlay({
   onSkip,
   onDisableAutoAnimation,
 }: NeuralFlowAnimationOverlayProps) {
+  const { mode } = useTheme()
+  const isLight = mode === 'light'
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const timelineRef = useRef<HTMLDivElement | null>(null)
@@ -552,7 +604,8 @@ export function NeuralFlowAnimationOverlay({
     let lastTs = performance.now()
     let lastUiSync = 0
 
-    const palette = getTonePalette(verdict?.tone)
+    const palette = getTonePalette(verdict?.tone, isLight)
+    const activeLayerThemes = isLight ? LAYER_THEME_LIGHT : LAYER_THEME
     const sparks: SparkParticle[] = []
     const triggeredMilestones = new Set<string>()
     let prevProgressForReset = 0
@@ -620,7 +673,7 @@ export function NeuralFlowAnimationOverlay({
     ) => {
       const steps = 10
       ctx.save()
-      ctx.globalCompositeOperation = 'lighter'
+      ctx.globalCompositeOperation = isLight ? 'source-over' : 'lighter'
       for (let s = 0; s < steps; s++) {
         const f0 = clamp01(tHead - (tailLen * (s + 1)) / steps)
         const f1 = clamp01(tHead - (tailLen * s) / steps)
@@ -631,25 +684,25 @@ export function NeuralFlowAnimationOverlay({
         ctx.beginPath()
         ctx.moveTo(p0.x, p0.y)
         ctx.lineTo(p1.x, p1.y)
-        ctx.strokeStyle = `rgba(${rgb}, ${(0.12 + ratio * 0.72).toFixed(3)})`
+        ctx.strokeStyle = `rgba(${rgb}, ${(isLight ? 0.18 + ratio * 0.72 : 0.12 + ratio * 0.72).toFixed(3)})`
         ctx.lineWidth = Math.max(1, headRadius * 1.15 * ratio)
         ctx.lineCap = 'round'
         ctx.stroke()
       }
 
       const head = samplePos(clamp01(tHead))
-      const g = ctx.createRadialGradient(head.x, head.y, 0.4, head.x, head.y, headRadius * 3.2)
-      g.addColorStop(0, '#ffffff')
-      g.addColorStop(0.32, headColor)
+      const g = ctx.createRadialGradient(head.x, head.y, 0.4, head.x, head.y, headRadius * (isLight ? 2.6 : 3.2))
+      g.addColorStop(0, isLight ? headColor : '#ffffff')
+      g.addColorStop(0.38, isLight ? `rgba(${rgb}, 0.55)` : headColor)
       g.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.fillStyle = g
       ctx.beginPath()
-      ctx.arc(head.x, head.y, headRadius * 3.2, 0, Math.PI * 2)
+      ctx.arc(head.x, head.y, headRadius * (isLight ? 2.6 : 3.2), 0, Math.PI * 2)
       ctx.fill()
 
-      ctx.fillStyle = '#ffffff'
+      ctx.fillStyle = isLight ? headColor : '#ffffff'
       ctx.beginPath()
-      ctx.arc(head.x, head.y, headRadius * 0.65, 0, Math.PI * 2)
+      ctx.arc(head.x, head.y, headRadius * (isLight ? 0.78 : 0.65), 0, Math.PI * 2)
       ctx.fill()
       ctx.restore()
     }
@@ -705,30 +758,36 @@ export function NeuralFlowAnimationOverlay({
       ctx.scale(dpr, dpr)
 
       // =====================================================
-      // FONDO CINEMÁTICO: Nebulosa profunda + Horizonte + Estrellas
+      // FONDO CINEMÁTICO: Nebulosa profunda (Oscuro) / Plano luminoso (Claro)
       // =====================================================
       const bgGrad = ctx.createRadialGradient(W * 0.52, H * 0.48, 40, W * 0.52, H * 0.48, Math.max(W, H) * 0.78)
-      bgGrad.addColorStop(0, '#091936')
-      bgGrad.addColorStop(0.52, '#040c1f')
-      bgGrad.addColorStop(1, '#020612')
+      if (isLight) {
+        bgGrad.addColorStop(0, '#ffffff')
+        bgGrad.addColorStop(0.55, '#f4f8ff')
+        bgGrad.addColorStop(1, '#eaf1fb')
+      } else {
+        bgGrad.addColorStop(0, '#091936')
+        bgGrad.addColorStop(0.52, '#040c1f')
+        bgGrad.addColorStop(1, '#020612')
+      }
       ctx.fillStyle = bgGrad
       ctx.fillRect(0, 0, W, H)
 
       // Nebulosas atmosféricas suaves que respiran con el veredicto
       const neb1 = ctx.createRadialGradient(W * 0.16, H * 0.48, 20, W * 0.16, H * 0.48, W * 0.28)
-      neb1.addColorStop(0, `rgba(20, 184, 166, ${0.11 + 0.05 * s1})`)
+      neb1.addColorStop(0, `rgba(20, 184, 166, ${(isLight ? 0.06 : 0.11) + 0.04 * s1})`)
       neb1.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.fillStyle = neb1
       ctx.fillRect(0, 0, W, H)
 
       const neb2 = ctx.createRadialGradient(W * 0.56, H * 0.5, 20, W * 0.56, H * 0.5, W * 0.34)
-      neb2.addColorStop(0, `rgba(99, 102, 241, ${0.09 + 0.08 * s3})`)
+      neb2.addColorStop(0, `rgba(99, 102, 241, ${(isLight ? 0.05 : 0.09) + 0.05 * s3})`)
       neb2.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.fillStyle = neb2
       ctx.fillRect(0, 0, W, H)
 
       const neb3 = ctx.createRadialGradient(W * 0.9, H * 0.5, 16, W * 0.9, H * 0.5, W * 0.24)
-      neb3.addColorStop(0, `rgba(${palette.rgb}, ${0.05 + 0.22 * easeOutCubic(s4)})`)
+      neb3.addColorStop(0, `rgba(${palette.rgb}, ${(isLight ? 0.03 : 0.05) + (isLight ? 0.12 : 0.22) * easeOutCubic(s4)})`)
       neb3.addColorStop(1, 'rgba(0,0,0,0)')
       ctx.fillStyle = neb3
       ctx.fillRect(0, 0, W, H)
@@ -736,7 +795,7 @@ export function NeuralFlowAnimationOverlay({
       // Cuadrícula sutil técnica + puntos
       ctx.save()
       const gridStep = 44
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.032)'
+      ctx.strokeStyle = isLight ? 'rgba(2, 132, 199, 0.065)' : 'rgba(56, 189, 248, 0.032)'
       ctx.lineWidth = 1
       ctx.beginPath()
       for (let gx = 22; gx < W; gx += gridStep) {
@@ -753,13 +812,13 @@ export function NeuralFlowAnimationOverlay({
       stars.forEach(st => {
         const sx = ((st.x + tSec * st.speedX) % 1 + 1) % 1
         const sy = ((st.y + tSec * st.speedY) % 1 + 1) % 1
-        const alpha = 0.15 + 0.22 * (0.5 + 0.5 * Math.sin(tSec * 1.8 + st.phase))
+        const alpha = (isLight ? 0.12 : 0.15) + (isLight ? 0.14 : 0.22) * (0.5 + 0.5 * Math.sin(tSec * 1.8 + st.phase))
         ctx.fillStyle =
           st.hue === 'cyan'
-            ? `rgba(56, 189, 248, ${alpha})`
+            ? `rgba(${isLight ? '2, 132, 199' : '56, 189, 248'}, ${alpha})`
             : st.hue === 'violet'
-              ? `rgba(167, 139, 250, ${alpha})`
-              : `rgba(45, 212, 191, ${alpha})`
+              ? `rgba(${isLight ? '124, 58, 237' : '167, 139, 250'}, ${alpha})`
+              : `rgba(${isLight ? '13, 148, 136' : '45, 212, 191'}, ${alpha})`
         ctx.beginPath()
         ctx.arc(sx * W, sy * H, st.r, 0, Math.PI * 2)
         ctx.fill()
@@ -956,7 +1015,7 @@ export function NeuralFlowAnimationOverlay({
       // Etiqueta superior de Zona 1
       ctx.save()
       ctx.textAlign = 'left'
-      ctx.fillStyle = s1 > 0 ? '#67e8f9' : '#64748b'
+      ctx.fillStyle = s1 > 0 ? (isLight ? '#0369a1' : '#67e8f9') : '#64748b'
       ctx.font = '800 9.5px "JetBrains Mono", monospace'
       ctx.fillText('01 · TUS DATOS REALES', inputX + 2, padTop - 22)
       ctx.fillStyle = '#64748b'
@@ -980,10 +1039,10 @@ export function NeuralFlowAnimationOverlay({
         ctx.moveTo(ic.cx, ic.cy)
         ctx.bezierCurveTo(midX, ic.cy, midX, convTargetY, convX, convTargetY)
         ctx.strokeStyle = isHovered
-          ? 'rgba(103, 232, 249, 0.92)'
+          ? isLight ? 'rgba(2, 132, 199, 0.95)' : 'rgba(103, 232, 249, 0.92)'
           : s1 > 0.18
-            ? `rgba(34, 211, 238, ${dimmed ? 0.08 : 0.16 + 0.42 * travel})`
-            : 'rgba(148, 163, 184, 0.12)'
+            ? `rgba(${isLight ? '2, 132, 199' : '34, 211, 238'}, ${dimmed ? 0.08 : (isLight ? 0.22 : 0.16) + 0.42 * travel})`
+            : 'rgba(148, 163, 184, 0.2)'
         ctx.lineWidth = isHovered ? 2.4 : s1 > 0.18 ? 1.55 : 1
         ctx.stroke()
         ctx.restore()
@@ -1000,8 +1059,8 @@ export function NeuralFlowAnimationOverlay({
             sample,
             tPart,
             inSteadyInput && !isHovered ? 0.18 : 0.24,
-            '#67e8f9',
-            '34, 211, 238',
+            isLight ? '#0284c7' : '#67e8f9',
+            isLight ? '2, 132, 199' : '34, 211, 238',
             isHovered ? 4.4 : inSteadyInput ? 2.5 : 3.5
           )
 
@@ -1015,12 +1074,12 @@ export function NeuralFlowAnimationOverlay({
             ctx.font = '700 9px "JetBrains Mono", monospace'
             const tw = ctx.measureText(pillTxt).width + 12
             drawRoundedRect(pt.x - tw / 2, pt.y - 22, tw, 16, 6)
-            ctx.fillStyle = 'rgba(6, 20, 44, 0.92)'
+            ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(6, 20, 44, 0.92)'
             ctx.fill()
-            ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)'
+            ctx.strokeStyle = isLight ? 'rgba(2, 132, 199, 0.6)' : 'rgba(56, 189, 248, 0.7)'
             ctx.lineWidth = 1
             ctx.stroke()
-            ctx.fillStyle = '#e0f2fe'
+            ctx.fillStyle = isLight ? '#0f172a' : '#e0f2fe'
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
             ctx.fillText(pillTxt, pt.x, pt.y - 14)
@@ -1036,27 +1095,34 @@ export function NeuralFlowAnimationOverlay({
 
         drawRoundedRect(cardX, ic.y, inputCardW, inputCardH, 11)
         const cardBg = ctx.createLinearGradient(cardX, ic.y, cardX + inputCardW, ic.y + inputCardH)
-        cardBg.addColorStop(0, isHovered ? 'rgba(14, 48, 86, 0.96)' : 'rgba(9, 24, 52, 0.92)')
-        cardBg.addColorStop(1, 'rgba(6, 15, 34, 0.95)')
+        if (isLight) {
+          cardBg.addColorStop(0, isHovered ? '#eff6ff' : '#ffffff')
+          cardBg.addColorStop(1, isHovered ? '#e0f2fe' : '#f8fafc')
+        } else {
+          cardBg.addColorStop(0, isHovered ? 'rgba(14, 48, 86, 0.96)' : 'rgba(9, 24, 52, 0.92)')
+          cardBg.addColorStop(1, 'rgba(6, 15, 34, 0.95)')
+        }
         ctx.fillStyle = cardBg
         if (isHovered || (s1 > 0.15 && s1 < 0.98)) {
-          ctx.shadowColor = isHovered ? 'rgba(34, 211, 238, 0.55)' : 'rgba(34, 211, 238, 0.25)'
-          ctx.shadowBlur = isHovered ? 18 : 10
+          ctx.shadowColor = isLight
+            ? isHovered ? 'rgba(2, 132, 199, 0.28)' : 'rgba(15, 23, 42, 0.08)'
+            : isHovered ? 'rgba(34, 211, 238, 0.55)' : 'rgba(34, 211, 238, 0.25)'
+          ctx.shadowBlur = isHovered ? 16 : 8
         }
         ctx.fill()
         ctx.shadowBlur = 0
         ctx.strokeStyle = isHovered
-          ? '#67e8f9'
+          ? isLight ? '#0284c7' : '#67e8f9'
           : s1 > 0.15
-            ? 'rgba(34, 211, 238, 0.52)'
-            : 'rgba(51, 65, 85, 0.8)'
+            ? isLight ? 'rgba(14, 116, 144, 0.35)' : 'rgba(34, 211, 238, 0.52)'
+            : isLight ? 'rgba(148, 163, 184, 0.45)' : 'rgba(51, 65, 85, 0.8)'
         ctx.lineWidth = isHovered ? 1.7 : 1.15
         ctx.stroke()
 
         // Barra lateral luminosa de intensidad Z-Score
         const zMag = clamp01(Math.abs(ic.item.scaledValue) / 2.5)
         drawRoundedRect(cardX + 3, ic.y + (compactInputCard ? 4 : 6), 3, Math.max(8, inputCardH - (compactInputCard ? 8 : 12)), 2)
-        ctx.fillStyle = ic.item.scaledValue >= 0 ? '#2dd4bf' : '#60a5fa'
+        ctx.fillStyle = ic.item.scaledValue >= 0 ? (isLight ? '#0d9488' : '#2dd4bf') : (isLight ? '#2563eb' : '#60a5fa')
         ctx.globalAlpha *= 0.45 + 0.55 * zMag
         ctx.fill()
         ctx.globalAlpha = dimmed ? 0.35 : Math.max(0.12, appear)
@@ -1064,13 +1130,13 @@ export function NeuralFlowAnimationOverlay({
         // Etiqueta y valor real (1 fila horizontal compacta si hay >10 variables, 2 filas si caben)
         if (compactInputCard) {
           ctx.textBaseline = 'middle'
-          ctx.fillStyle = '#cbd5e1'
+          ctx.fillStyle = isLight ? '#475569' : '#cbd5e1'
           ctx.font = '600 9px "Plus Jakarta Sans", system-ui, sans-serif'
           ctx.textAlign = 'left'
           const lbl = ic.item.label.length > 18 ? `${ic.item.label.slice(0, 17)}…` : ic.item.label
           ctx.fillText(lbl, cardX + 10, ic.cy + 0.5)
 
-          ctx.fillStyle = '#f8fafc'
+          ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc'
           ctx.font = '700 9.5px "JetBrains Mono", monospace'
           ctx.textAlign = 'right'
           const vStr =
@@ -1079,14 +1145,14 @@ export function NeuralFlowAnimationOverlay({
               : ic.item.displayValue
           ctx.fillText(vStr, cardX + inputCardW - 9, ic.cy + 0.5)
         } else {
-          ctx.fillStyle = '#94a3b8'
+          ctx.fillStyle = isLight ? '#475569' : '#94a3b8'
           ctx.font = '600 9.5px "Plus Jakarta Sans", system-ui, sans-serif'
           ctx.textAlign = 'left'
           ctx.textBaseline = 'alphabetic'
           const lbl = ic.item.label.length > 20 ? `${ic.item.label.slice(0, 19)}…` : ic.item.label
           ctx.fillText(lbl, cardX + 12, ic.y + 15)
 
-          ctx.fillStyle = '#f8fafc'
+          ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc'
           ctx.font = '700 11.5px "JetBrains Mono", monospace'
           const vStr =
             ic.item.displayValue.length > 17
@@ -1098,7 +1164,7 @@ export function NeuralFlowAnimationOverlay({
         // Puerto de salida brillante a la derecha de la tarjeta
         ctx.beginPath()
         ctx.arc(cardX + inputCardW, ic.cy, isHovered ? 3.8 : 2.6, 0, Math.PI * 2)
-        ctx.fillStyle = s1 > 0.15 ? '#67e8f9' : '#475569'
+        ctx.fillStyle = s1 > 0.15 ? (isLight ? '#0284c7' : '#67e8f9') : '#94a3b8'
         ctx.fill()
         ctx.restore()
 
@@ -1130,7 +1196,7 @@ export function NeuralFlowAnimationOverlay({
 
       ctx.save()
       ctx.textAlign = 'center'
-      ctx.fillStyle = convActive ? '#5eead4' : '#64748b'
+      ctx.fillStyle = convActive ? (isLight ? '#0f766e' : '#5eead4') : '#64748b'
       ctx.font = '800 9.5px "JetBrains Mono", monospace'
       ctx.fillText('02 · CONVERSOR IA', convX + convW / 2, padTop - 22)
       ctx.fillStyle = '#64748b'
@@ -1149,7 +1215,7 @@ export function NeuralFlowAnimationOverlay({
           centerY,
           convH * 0.65
         )
-        prismGlow.addColorStop(0, `rgba(45, 212, 191, ${0.14 + convPulse * 0.12})`)
+        prismGlow.addColorStop(0, `rgba(${isLight ? '13, 148, 136' : '45, 212, 191'}, ${(isLight ? 0.08 : 0.14) + convPulse * 0.08})`)
         prismGlow.addColorStop(1, 'rgba(0,0,0,0)')
         ctx.fillStyle = prismGlow
         ctx.fillRect(convX - 60, convY - 60, convW + 120, convH + 120)
@@ -1160,18 +1226,26 @@ export function NeuralFlowAnimationOverlay({
       ctx.save()
       drawRoundedRect(convX, convY, convW, convH, 18)
       const convGrad = ctx.createLinearGradient(convX, convY, convX + convW, convY + convH)
-      convGrad.addColorStop(0, convActive ? 'rgba(13, 148, 136, 0.30)' : 'rgba(11, 22, 46, 0.85)')
-      convGrad.addColorStop(0.5, convActive ? 'rgba(8, 36, 68, 0.92)' : 'rgba(8, 17, 36, 0.92)')
-      convGrad.addColorStop(1, convActive ? 'rgba(99, 102, 241, 0.30)' : 'rgba(11, 22, 46, 0.85)')
+      if (isLight) {
+        convGrad.addColorStop(0, convActive ? '#f0fdfa' : '#ffffff')
+        convGrad.addColorStop(0.5, convActive ? '#f0f9ff' : '#f8fafc')
+        convGrad.addColorStop(1, convActive ? '#eef2ff' : '#ffffff')
+      } else {
+        convGrad.addColorStop(0, convActive ? 'rgba(13, 148, 136, 0.30)' : 'rgba(11, 22, 46, 0.85)')
+        convGrad.addColorStop(0.5, convActive ? 'rgba(8, 36, 68, 0.92)' : 'rgba(8, 17, 36, 0.92)')
+        convGrad.addColorStop(1, convActive ? 'rgba(99, 102, 241, 0.30)' : 'rgba(11, 22, 46, 0.85)')
+      }
       ctx.fillStyle = convGrad
       if (convActive) {
-        ctx.shadowColor = 'rgba(45, 212, 191, 0.45)'
-        ctx.shadowBlur = 16 + convPulse * 14
+        ctx.shadowColor = isLight ? 'rgba(13, 148, 136, 0.18)' : 'rgba(45, 212, 191, 0.45)'
+        ctx.shadowBlur = isLight ? 14 : 16 + convPulse * 14
       }
       ctx.fill()
       ctx.shadowBlur = 0
       ctx.lineWidth = convActive ? 1.8 : 1.1
-      ctx.strokeStyle = convActive ? 'rgba(45, 212, 191, 0.82)' : 'rgba(71, 85, 105, 0.65)'
+      ctx.strokeStyle = convActive
+        ? isLight ? 'rgba(13, 148, 136, 0.65)' : 'rgba(45, 212, 191, 0.82)'
+        : isLight ? 'rgba(148, 163, 184, 0.55)' : 'rgba(71, 85, 105, 0.65)'
       ctx.stroke()
 
       // Clip interior del prisma para el haz escáner y anillos orbitales
@@ -1181,7 +1255,9 @@ export function NeuralFlowAnimationOverlay({
       ctx.save()
       ctx.translate(convX + convW / 2, centerY)
       ctx.rotate(tSec * (convActive ? 1.2 : 0.25))
-      ctx.strokeStyle = convActive ? 'rgba(45, 212, 191, 0.24)' : 'rgba(100, 116, 139, 0.12)'
+      ctx.strokeStyle = convActive
+        ? isLight ? 'rgba(13, 148, 136, 0.22)' : 'rgba(45, 212, 191, 0.24)'
+        : 'rgba(100, 116, 139, 0.12)'
       ctx.lineWidth = 1.2
       ctx.setLineDash([8, 6])
       ctx.beginPath()
@@ -1195,7 +1271,7 @@ export function NeuralFlowAnimationOverlay({
         const scanY = convY + ((tSec * 1.4) % 1) * convH
         const scanGrad = ctx.createLinearGradient(0, scanY - 26, 0, scanY + 26)
         scanGrad.addColorStop(0, 'rgba(45, 212, 191, 0)')
-        scanGrad.addColorStop(0.5, 'rgba(94, 234, 212, 0.45)')
+        scanGrad.addColorStop(0.5, isLight ? 'rgba(13, 148, 136, 0.28)' : 'rgba(94, 234, 212, 0.45)')
         scanGrad.addColorStop(1, 'rgba(45, 212, 191, 0)')
         ctx.fillStyle = scanGrad
         ctx.fillRect(convX, scanY - 26, convW, 52)
@@ -1203,7 +1279,7 @@ export function NeuralFlowAnimationOverlay({
 
       // Valores tensoriales convertidos en filas vivas
       ctx.textAlign = 'center'
-      ctx.fillStyle = convActive ? '#99f6e4' : '#64748b'
+      ctx.fillStyle = convActive ? (isLight ? '#0f766e' : '#99f6e4') : '#64748b'
       ctx.font = '800 9px "JetBrains Mono", monospace'
       ctx.fillText('TENSOR ENGINE', convX + convW / 2, convY + 22)
 
@@ -1221,17 +1297,17 @@ export function NeuralFlowAnimationOverlay({
         const barW = (convW - 22) * clamp01(Math.abs(it.scaledValue) / 3) * (s2 > 0 ? easeOutCubic(rowProgress) : 0.25)
         ctx.fillStyle =
           it.scaledValue >= 0
-            ? `rgba(45, 212, 191, ${s2 > 0 ? 0.24 : 0.08})`
-            : `rgba(96, 165, 250, ${s2 > 0 ? 0.24 : 0.08})`
+            ? `rgba(${isLight ? '13, 148, 136' : '45, 212, 191'}, ${s2 > 0 ? (isLight ? 0.18 : 0.24) : 0.08})`
+            : `rgba(${isLight ? '37, 99, 235' : '96, 165, 250'}, ${s2 > 0 ? (isLight ? 0.18 : 0.24) : 0.08})`
         drawRoundedRect(convX + 11, yRow - rowH / 2, Math.max(6, barW), rowH, 4)
         ctx.fill()
 
         ctx.fillStyle =
           rowProgress > 0.1
             ? it.scaledValue >= 0
-              ? '#5eead4'
-              : '#93c5fd'
-            : 'rgba(148, 163, 184, 0.4)'
+              ? isLight ? '#0f766e' : '#5eead4'
+              : isLight ? '#1d4ed8' : '#93c5fd'
+            : 'rgba(148, 163, 184, 0.55)'
         ctx.font = `700 ${compactInputCard ? 8.8 : 10.2}px "JetBrains Mono", monospace`
         ctx.textBaseline = 'middle'
         ctx.fillText(rowProgress > 0.05 ? zStr : '····', convX + convW / 2, yRow + 0.5)
@@ -1276,14 +1352,14 @@ export function NeuralFlowAnimationOverlay({
         ctx.moveTo(srcX, srcY)
         ctx.bezierCurveTo(midX, srcY, midX, node.y, node.x, node.y)
         if (isInputNodeHovered) {
-          ctx.globalCompositeOperation = 'lighter'
-          ctx.strokeStyle = 'rgba(94, 234, 212, 0.92)'
+          ctx.globalCompositeOperation = isLight ? 'source-over' : 'lighter'
+          ctx.strokeStyle = isLight ? 'rgba(13, 148, 136, 0.95)' : 'rgba(94, 234, 212, 0.92)'
           ctx.lineWidth = 2.4
         } else {
           ctx.strokeStyle =
             s2 > 0
-              ? `rgba(45, 212, 191, ${(l0Dense && !isActiveInput ? 0.1 : 0.14) + (l0Dense && !isActiveInput ? 0.28 : 0.52) * localT})`
-              : 'rgba(148, 163, 184, 0.10)'
+              ? `rgba(${isLight ? '13, 148, 136' : '45, 212, 191'}, ${(l0Dense && !isActiveInput ? (isLight ? 0.14 : 0.1) : 0.16) + (l0Dense && !isActiveInput ? 0.28 : 0.52) * localT})`
+              : 'rgba(148, 163, 184, 0.22)'
           ctx.lineWidth = s2 > 0 ? (l0Dense ? (isActiveInput ? 1.45 : 0.95) : 1.7) : 0.9
         }
         ctx.stroke()
@@ -1357,23 +1433,27 @@ export function NeuralFlowAnimationOverlay({
         const colW = meta?.colW ?? (isLast ? 64 : 56)
         const theme = isLast
           ? { hex: palette.primary, rgb: palette.rgb }
-          : LAYER_THEME[lIdx % LAYER_THEME.length]
+          : activeLayerThemes[lIdx % activeLayerThemes.length]
 
         const panelTopY = Math.min(padTop + 4, (meta?.topY ?? padTop + 20) - 20)
         const panelBottomY = Math.max(padTop + usableH - 4, (meta?.bottomY ?? padTop + usableH - 20) + 20)
         ctx.save()
         drawRoundedRect(lx - colW / 2, panelTopY, colW, panelBottomY - panelTopY, 16)
-        ctx.fillStyle = isCurrentWave
-          ? `rgba(${theme.rgb}, 0.09)`
-          : layerLit
-            ? `rgba(${theme.rgb}, 0.04)`
-            : 'rgba(15, 23, 42, 0.25)'
+        ctx.fillStyle = isLight
+          ? isCurrentWave
+            ? `rgba(${theme.rgb}, 0.11)`
+            : 'rgba(255, 255, 255, 0.78)'
+          : isCurrentWave
+            ? `rgba(${theme.rgb}, 0.09)`
+            : layerLit
+              ? `rgba(${theme.rgb}, 0.04)`
+              : 'rgba(15, 23, 42, 0.25)'
         ctx.fill()
         ctx.strokeStyle = isCurrentWave
-          ? `rgba(${theme.rgb}, 0.45)`
+          ? `rgba(${theme.rgb}, ${isLight ? 0.55 : 0.45})`
           : layerLit
-            ? `rgba(${theme.rgb}, 0.18)`
-            : 'rgba(51, 65, 85, 0.28)'
+            ? `rgba(${theme.rgb}, ${isLight ? 0.28 : 0.18})`
+            : isLight ? 'rgba(148, 163, 184, 0.35)' : 'rgba(51, 65, 85, 0.28)'
         ctx.lineWidth = isCurrentWave ? 1.4 : 1
         ctx.stroke()
         ctx.restore()
@@ -1388,7 +1468,7 @@ export function NeuralFlowAnimationOverlay({
         const isOutputSeg = l === layerCount - 2
         const dstTheme = isOutputSeg
           ? { hex: palette.primary, rgb: palette.rgb }
-          : LAYER_THEME[(l + 1) % LAYER_THEME.length]
+          : activeLayerThemes[(l + 1) % activeLayerThemes.length]
 
         // Disparar sonido y chispas cuando la onda llega a la capa destino
         if (segProgress >= 0.92 && !triggeredMilestones.has(`layer-hit-${l + 1}`)) {
@@ -1492,8 +1572,8 @@ export function NeuralFlowAnimationOverlay({
               ctx.bezierCurveTo(a.x + dx * 0.45, a.y, a.x + dx * 0.55, b.y, b.x, b.y)
             }
             ctx.strokeStyle = isLit
-              ? `rgba(${dstTheme.rgb}, ${0.09 * easeOutCubic(segProgress) * dimFactor})`
-              : 'rgba(71, 85, 105, 0.06)'
+              ? `rgba(${dstTheme.rgb}, ${(isLight ? 0.16 : 0.09) * easeOutCubic(segProgress) * dimFactor})`
+              : isLight ? 'rgba(148, 163, 184, 0.14)' : 'rgba(71, 85, 105, 0.06)'
             ctx.lineWidth = 0.55
             ctx.stroke()
             ctx.restore()
@@ -1510,8 +1590,8 @@ export function NeuralFlowAnimationOverlay({
               ctx.bezierCurveTo(a.x + dx * 0.45, a.y, a.x + dx * 0.55, b.y, b.x, b.y)
             }
             ctx.strokeStyle = isLit
-              ? `rgba(${dstTheme.rgb}, ${0.26 * easeOutCubic(segProgress) * dimFactor})`
-              : 'rgba(71, 85, 105, 0.08)'
+              ? `rgba(${dstTheme.rgb}, ${(isLight ? 0.36 : 0.26) * easeOutCubic(segProgress) * dimFactor})`
+              : isLight ? 'rgba(148, 163, 184, 0.18)' : 'rgba(71, 85, 105, 0.08)'
             ctx.lineWidth = 0.85
             ctx.stroke()
             ctx.restore()
@@ -1520,7 +1600,7 @@ export function NeuralFlowAnimationOverlay({
           // Batch 3: 100% de las sinapsis reales de la neurona bajo hover
           if (hoverEdges.length > 0) {
             ctx.save()
-            ctx.globalCompositeOperation = 'lighter'
+            ctx.globalCompositeOperation = isLight ? 'source-over' : 'lighter'
             ctx.beginPath()
             for (let e = 0; e < hoverEdges.length; e++) {
               const { a, b } = hoverEdges[e]
@@ -1528,7 +1608,7 @@ export function NeuralFlowAnimationOverlay({
               ctx.moveTo(a.x, a.y)
               ctx.bezierCurveTo(a.x + dx * 0.45, a.y, a.x + dx * 0.55, b.y, b.x, b.y)
             }
-            ctx.strokeStyle = `rgba(${dstTheme.rgb}, 0.84)`
+            ctx.strokeStyle = `rgba(${dstTheme.rgb}, ${isLight ? 0.88 : 0.84})`
             ctx.lineWidth = 1.65
             ctx.stroke()
             ctx.restore()
@@ -1664,7 +1744,7 @@ export function NeuralFlowAnimationOverlay({
       // CHISPAS DE ENERGÍA (detrás de las neuronas para nunca tapar números)
       // =====================================================
       ctx.save()
-      ctx.globalCompositeOperation = 'lighter'
+      ctx.globalCompositeOperation = isLight ? 'source-over' : 'lighter'
       for (let i = sparks.length - 1; i >= 0; i--) {
         const sp = sparks[i]
         sp.life += dt
@@ -1698,7 +1778,7 @@ export function NeuralFlowAnimationOverlay({
         const lx = meta?.cx ?? nodes[0]?.x ?? netStartX
         const theme = isLast
           ? { hex: palette.primary, bright: palette.bright, rgb: palette.rgb, formula: `ŷ = ${layer.activation}` }
-          : LAYER_THEME[lIdx % LAYER_THEME.length]
+          : activeLayerThemes[lIdx % activeLayerThemes.length]
 
         // Cada neurona con efecto cristal 3D + arco de activación (siempre a tamaño legible con su número visible)
         const denseLayer = nodes.length > 8
@@ -1735,7 +1815,7 @@ export function NeuralFlowAnimationOverlay({
 
             // Resplandor radial aditivo exterior (optimizado a 60 FPS en capas de 64–128 neuronas)
             if (!microOrb || node.act > 0.25 || isHovered) {
-              ctx.globalCompositeOperation = 'lighter'
+              ctx.globalCompositeOperation = isLight ? 'source-over' : 'lighter'
               const glowScale = isHovered ? 2.5 : microOrb ? 1.65 : denseLayer ? 1.75 : 2.15
               const glowGrad = ctx.createRadialGradient(
                 node.x,
@@ -1745,7 +1825,7 @@ export function NeuralFlowAnimationOverlay({
                 node.y,
                 r * glowScale
               )
-              glowGrad.addColorStop(0, `rgba(${theme.rgb}, ${isHovered ? 0.58 : denseLayer ? 0.28 : 0.36})`)
+              glowGrad.addColorStop(0, `rgba(${theme.rgb}, ${isHovered ? (isLight ? 0.35 : 0.58) : isLight ? 0.16 : denseLayer ? 0.28 : 0.36})`)
               glowGrad.addColorStop(1, 'rgba(0,0,0,0)')
               ctx.fillStyle = glowGrad
               ctx.beginPath()
@@ -1755,10 +1835,12 @@ export function NeuralFlowAnimationOverlay({
             }
           }
 
-          // Cuerpo oscuro de alto contraste con borde luminoso interno (garantiza lectura nítida del número)
+          // Cuerpo de alto contraste (oscuro en Modo Oscuro, blanco puro en Modo Claro)
           ctx.beginPath()
           ctx.arc(node.x, node.y, r, 0, Math.PI * 2)
-          if (microOrb && !isHovered) {
+          if (isLight) {
+            ctx.fillStyle = isLast && layerLit ? theme.hex : layerLit ? '#ffffff' : '#f1f5f9'
+          } else if (microOrb && !isHovered) {
             ctx.fillStyle = layerLit ? (node.act > 0.25 ? '#07152e' : '#040b1c') : '#0b1426'
           } else {
             const sphereGrad = ctx.createRadialGradient(
@@ -1781,14 +1863,14 @@ export function NeuralFlowAnimationOverlay({
           }
           ctx.fill()
 
-          ctx.lineWidth = isHovered ? 2.2 : layerLit ? (microOrb ? 1.15 : denseLayer ? 1.35 : 1.8) : 0.95
+          ctx.lineWidth = isHovered ? 2.2 : layerLit ? (microOrb ? 1.15 : denseLayer ? 1.45 : 1.8) : 0.95
           ctx.strokeStyle = isHovered
-            ? '#ffffff'
+            ? isLight ? '#0f172a' : '#ffffff'
             : layerLit
               ? node.act > 0.18 || !microOrb
                 ? theme.hex
-                : `rgba(${theme.rgb}, 0.48)`
-              : '#334155'
+                : `rgba(${theme.rgb}, 0.55)`
+              : isLight ? '#94a3b8' : '#334155'
           ctx.stroke()
 
           // Arco radial exterior proporcional a la activación real de esta neurona
@@ -1801,8 +1883,8 @@ export function NeuralFlowAnimationOverlay({
               -Math.PI / 2,
               -Math.PI / 2 + Math.PI * 2 * node.act * layerIntensity
             )
-            ctx.strokeStyle = theme.bright
-            ctx.lineWidth = microOrb ? 1.05 : denseLayer ? 1.25 : 1.9
+            ctx.strokeStyle = isLight ? theme.hex : theme.bright
+            ctx.lineWidth = microOrb ? 1.05 : denseLayer ? 1.35 : 1.9
             ctx.lineCap = 'round'
             ctx.stroke()
           }
@@ -1810,7 +1892,7 @@ export function NeuralFlowAnimationOverlay({
           // Valor numérico real nítido y de alto contraste dentro de la neurona (siempre visible en vista normal y zoom)
           if (layerLit && layerIntensity > 0.38 && r * cam.zoom >= 4.2) {
             const cleanNum = Math.abs(node.rawAct) < 0.05 ? '0.0' : node.rawAct.toFixed(1)
-            ctx.fillStyle = '#f8fafc'
+            ctx.fillStyle = isLight ? (isLast ? '#ffffff' : '#0f172a') : '#f8fafc'
             ctx.textAlign = 'center'
             ctx.textBaseline = 'middle'
             const fontPx = isLast ? 11 : denseLayer ? Math.max(6.8, Math.min(8.5, r * 0.78)) : 9.5
@@ -1858,7 +1940,7 @@ export function NeuralFlowAnimationOverlay({
         if (isHeaderSticky) {
           const hdrW = Math.max(92, (meta?.colW ?? 64) + 16)
           drawRoundedRect(lx - hdrW / 2, headerY - 12, hdrW, 30, 8)
-          ctx.fillStyle = 'rgba(2, 6, 18, 0.90)'
+          ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(2, 6, 18, 0.90)'
           ctx.fill()
           ctx.strokeStyle = `rgba(${theme.rgb}, 0.36)`
           ctx.lineWidth = 1
@@ -1881,7 +1963,7 @@ export function NeuralFlowAnimationOverlay({
             : `CAPA ${lIdx} · ${shortType}`
         ctx.fillText(shortLayerName, lx, headerY)
 
-        ctx.fillStyle = layerLit ? theme.hex : '#475569'
+        ctx.fillStyle = layerLit ? theme.hex : '#64748b'
         ctx.font = '600 9px "JetBrains Mono", monospace'
         ctx.fillText(`${layer.units}u · ${layer.activation}`, lx, headerY + 14)
 
@@ -1891,7 +1973,7 @@ export function NeuralFlowAnimationOverlay({
         const pillY = Math.min(naturalPillY, Math.max((meta?.topY ?? padTop) + 28, bottomVisibleWorldY))
 
         if (layer.units > nodes.length) {
-          ctx.fillStyle = layerLit ? theme.hex : '#475569'
+          ctx.fillStyle = layerLit ? theme.hex : '#64748b'
           ctx.font = '700 8.5px "JetBrains Mono", monospace'
           ctx.fillText(`+${layer.units - nodes.length} más`, lx, pillY - 8)
         }
@@ -1900,19 +1982,19 @@ export function NeuralFlowAnimationOverlay({
           const activePct = Math.round((layer.active_ratio ?? 0) * 100)
           const pillW = 84
           drawRoundedRect(lx - pillW / 2, pillY, pillW, 28, 8)
-          ctx.fillStyle = 'rgba(7, 18, 38, 0.92)'
+          ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.96)' : 'rgba(7, 18, 38, 0.92)'
           ctx.fill()
-          ctx.strokeStyle = `rgba(${theme.rgb}, 0.42)`
+          ctx.strokeStyle = `rgba(${theme.rgb}, ${isLight ? 0.45 : 0.42})`
           ctx.lineWidth = 1
           ctx.stroke()
 
-          ctx.fillStyle = theme.bright
+          ctx.fillStyle = isLight ? '#0f172a' : theme.bright
           ctx.font = '700 9px "JetBrains Mono", monospace'
           ctx.fillText(`${activePct}% act · μ ${layer.mean_activation.toFixed(2)}`, lx, pillY + 11)
 
           // Mini barra de carga de activación
           const barMax = pillW - 14
-          ctx.fillStyle = 'rgba(51, 65, 85, 0.65)'
+          ctx.fillStyle = isLight ? 'rgba(203, 213, 225, 0.85)' : 'rgba(51, 65, 85, 0.65)'
           drawRoundedRect(lx - barMax / 2, pillY + 18, barMax, 3.5, 2)
           ctx.fill()
           ctx.fillStyle = theme.hex
@@ -2017,20 +2099,20 @@ export function NeuralFlowAnimationOverlay({
         }
 
         // Bloom aditivo exterior
-        ctx.globalCompositeOperation = 'lighter'
+        ctx.globalCompositeOperation = isLight ? 'source-over' : 'lighter'
         const bloom = ctx.createRadialGradient(
           outNodeX,
           outNodeY,
           10,
           outNodeX,
           outNodeY,
-          finalR * 2.5
+          finalR * 2.4
         )
         bloom.addColorStop(0, palette.glow)
         bloom.addColorStop(1, 'rgba(0,0,0,0)')
         ctx.fillStyle = bloom
         ctx.beginPath()
-        ctx.arc(outNodeX, outNodeY, finalR * 2.5, 0, Math.PI * 2)
+        ctx.arc(outNodeX, outNodeY, finalR * 2.4, 0, Math.PI * 2)
         ctx.fill()
         ctx.globalCompositeOperation = 'source-over'
 
@@ -2046,7 +2128,7 @@ export function NeuralFlowAnimationOverlay({
         ctx.stroke()
 
         ctx.rotate(-tSec * 1.65)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+        ctx.strokeStyle = isLight ? 'rgba(15, 23, 42, 0.22)' : 'rgba(255, 255, 255, 0.35)'
         ctx.lineWidth = 1.1
         ctx.setLineDash([4, 10])
         ctx.beginPath()
@@ -2056,7 +2138,7 @@ export function NeuralFlowAnimationOverlay({
         ctx.restore()
       }
 
-      // Esfera interior del núcleo (centro oscuro para máximo contraste del porcentaje)
+      // Esfera interior del núcleo (alto contraste en ambos temas)
       const coreBg = ctx.createRadialGradient(
         outNodeX,
         outNodeY,
@@ -2066,19 +2148,24 @@ export function NeuralFlowAnimationOverlay({
         finalR
       )
       if (outLit) {
-        coreBg.addColorStop(0, '#040a1a')
-        coreBg.addColorStop(0.68, '#091632')
-        coreBg.addColorStop(1, `rgba(${palette.rgb}, 0.42)`)
+        if (isLight) {
+          coreBg.addColorStop(0, palette.primary)
+          coreBg.addColorStop(1, palette.secondary)
+        } else {
+          coreBg.addColorStop(0, '#040a1a')
+          coreBg.addColorStop(0.68, '#091632')
+          coreBg.addColorStop(1, `rgba(${palette.rgb}, 0.42)`)
+        }
       } else {
-        coreBg.addColorStop(0, '#0b1426')
-        coreBg.addColorStop(1, '#132242')
+        coreBg.addColorStop(0, isLight ? '#f8fafc' : '#0b1426')
+        coreBg.addColorStop(1, isLight ? '#e2e8f0' : '#132242')
       }
       ctx.beginPath()
       ctx.arc(outNodeX, outNodeY, finalR, 0, Math.PI * 2)
       ctx.fillStyle = coreBg
       ctx.fill()
       ctx.lineWidth = outLit ? 2.4 : 1.4
-      ctx.strokeStyle = outLit ? palette.primary : '#334155'
+      ctx.strokeStyle = outLit ? (isLight ? palette.secondary : palette.primary) : isLight ? '#94a3b8' : '#334155'
       ctx.stroke()
 
       // Arco de progreso de confianza animado (0% -> confianza real)
@@ -2097,7 +2184,7 @@ export function NeuralFlowAnimationOverlay({
         ctx.lineWidth = 3.2
         ctx.lineCap = 'round'
         ctx.shadowColor = palette.primary
-        ctx.shadowBlur = 12
+        ctx.shadowBlur = isLight ? 6 : 12
         ctx.stroke()
         ctx.shadowBlur = 0
       }
@@ -2115,7 +2202,7 @@ export function NeuralFlowAnimationOverlay({
               ? verdict.formattedValue.split(' ')[0]
               : 'OK'
         ctx.fillText(mainChip, outNodeX, outNodeY - 6)
-        ctx.fillStyle = palette.bright
+        ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.92)' : palette.bright
         ctx.font = '800 8.5px "Plus Jakarta Sans", system-ui, sans-serif'
         ctx.fillText(verdict.badgeText.toUpperCase(), outNodeX, outNodeY + 14)
       } else {
@@ -2157,7 +2244,7 @@ export function NeuralFlowAnimationOverlay({
 
     animId = window.requestAnimationFrame(render)
     return () => window.cancelAnimationFrame(animId)
-  }, [displayLayers, inputItems.length, open, result, verdict, visibleInputs])
+  }, [displayLayers, inputItems.length, isLight, open, result, verdict, visibleInputs])
 
   const seekTimelineFromClientX = useCallback((clientX: number) => {
     const bar = timelineRef.current

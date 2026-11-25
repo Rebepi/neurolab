@@ -95,7 +95,7 @@ export default function Header({
       return false
     }
   })
-  const { mode, toggleMode } = useTheme()
+  const { mode, preference, toggleMode } = useTheme()
 
   function handleDiscoverTitleTip() {
     if (tipDiscovered) return
@@ -159,7 +159,21 @@ export default function Header({
           </div>
         )}
 
-        <SystemTooltip label={mode === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'} side="bottom">
+        <SystemTooltip
+          title={
+            preference === 'system'
+              ? `Tema del sistema (${mode === 'dark' ? 'Oscuro' : 'Claro'})`
+              : mode === 'dark'
+                ? 'Modo Oscuro activo'
+                : 'Modo Claro activo'
+          }
+          label={
+            mode === 'dark'
+              ? 'Haz clic para cambiar a Modo Claro. Puedes volver a «Sistema (Auto)» en Configuración.'
+              : 'Haz clic para cambiar a Modo Oscuro. Puedes volver a «Sistema (Auto)» en Configuración.'
+          }
+          side="bottom"
+        >
           <button
             type="button"
             onClick={toggleMode}

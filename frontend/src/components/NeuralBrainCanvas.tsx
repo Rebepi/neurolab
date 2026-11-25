@@ -12,6 +12,7 @@ import {
 interface NeuralBrainCanvasProps {
   pulseBurst?: number
   entering?: boolean
+  lightMode?: boolean
 }
 
 interface CompiledProgram {
@@ -232,14 +233,21 @@ function writeModelView(
   normOut[8] = r22
 }
 
-export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBrainCanvasProps) {
+export function NeuralBrainCanvas({ pulseBurst = 0, entering = false, lightMode = false }: NeuralBrainCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const burstTriggerRef = useRef(0)
   const enteringRef = useRef(entering)
+  const lightModeRef = useRef(lightMode)
+  const redrawRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     enteringRef.current = entering
   }, [entering])
+
+  useEffect(() => {
+    lightModeRef.current = lightMode
+    redrawRef.current?.()
+  }, [lightMode])
 
   useEffect(() => {
     if (pulseBurst > 0) {
@@ -281,6 +289,7 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         'uPointerLocal',
         'uPointerActive',
         'uBursts[0]',
+        'uLightMode',
       ])
       tractProg = createProgram(gl, TRACT_VS, TRACT_FS, [
         'uModelView',
@@ -291,6 +300,7 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         'uPointerLocal',
         'uPointerActive',
         'uBursts[0]',
+        'uLightMode',
       ])
       pointProg = createProgram(gl, POINT_VS, POINT_FS, [
         'uModelView',
@@ -302,6 +312,7 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         'uPointerLocal',
         'uPointerActive',
         'uBursts[0]',
+        'uLightMode',
       ])
       programs.push(surfaceProg.program, tractProg.program, pointProg.program)
     } catch {
@@ -597,20 +608,38 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
       gl.enable(gl.BLEND)
 
+      const isLight = lightModeRef.current
+      const lightFlag = isLight ? 1 : 0
+      const applyGlowBlend = () => {
+        if (isLight) {
+          gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+        } else {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        }
+      }
+      const applySurfaceBlend = () => {
+        if (isLight) {
+          gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+        } else {
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+        }
+      }
+
       if (dustVao) {
         gl.disable(gl.DEPTH_TEST)
         gl.depthMask(false)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        applyGlowBlend()
         gl.useProgram(pointProg.program)
         gl.uniformMatrix4fv(pointProg.uniforms.uModelView, false, dustMvMat)
         gl.uniformMatrix4fv(pointProg.uniforms.uProj, false, projMat)
         gl.uniform1f(pointProg.uniforms.uTime, simTime * 0.45)
         gl.uniform1f(pointProg.uniforms.uDpr, dpr)
-        gl.uniform1f(pointProg.uniforms.uPointScale, 1.3)
+        gl.uniform1f(pointProg.uniforms.uPointScale, isLight ? 1.05 : 1.3)
         gl.uniform1f(pointProg.uniforms.uScatter, scatter * 0.22)
         gl.uniform3f(pointProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(pointProg.uniforms.uPointerActive, 0)
         gl.uniform4fv(pointProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(pointProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(dustVao)
         gl.drawArrays(gl.POINTS, 0, scene.dust.positions.length / 3)
       }
@@ -622,17 +651,18 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         gl.enable(gl.CULL_FACE)
         gl.cullFace(gl.BACK)
         gl.depthMask(false)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        applyGlowBlend()
         gl.useProgram(surfaceProg.program)
         gl.uniformMatrix4fv(surfaceProg.uniforms.uModelView, false, mvMat)
         gl.uniformMatrix4fv(surfaceProg.uniforms.uProj, false, projMat)
         gl.uniformMatrix3fv(surfaceProg.uniforms.uNormalMat, false, normMat)
         gl.uniform1f(surfaceProg.uniforms.uTime, simTime)
-        gl.uniform1f(surfaceProg.uniforms.uPassOpacity, 0.72 * surfaceFade)
+        gl.uniform1f(surfaceProg.uniforms.uPassOpacity, (isLight ? 0.68 : 0.72) * surfaceFade)
         gl.uniform1f(surfaceProg.uniforms.uScatter, scatter * 0.65)
         gl.uniform3f(surfaceProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(surfaceProg.uniforms.uPointerActive, ptrActive)
         gl.uniform4fv(surfaceProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(surfaceProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(coreVao)
         gl.drawElements(gl.TRIANGLES, scene.core.indices.length, coreIndexType, 0)
       }
@@ -640,16 +670,17 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
       if (ringsVao && lineFade > 0.01) {
         gl.disable(gl.CULL_FACE)
         gl.depthMask(false)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        applyGlowBlend()
         gl.useProgram(tractProg.program)
         gl.uniformMatrix4fv(tractProg.uniforms.uModelView, false, ringMvMat)
         gl.uniformMatrix4fv(tractProg.uniforms.uProj, false, projMat)
         gl.uniform1f(tractProg.uniforms.uTime, simTime)
-        gl.uniform1f(tractProg.uniforms.uBaseAlpha, 0.14 * lineFade)
+        gl.uniform1f(tractProg.uniforms.uBaseAlpha, (isLight ? 0.14 : 0.14) * lineFade)
         gl.uniform1f(tractProg.uniforms.uScatter, scatter * 0.45)
         gl.uniform3f(tractProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(tractProg.uniforms.uPointerActive, 0)
         gl.uniform4fv(tractProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(tractProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(ringsVao)
         gl.drawArrays(gl.LINES, 0, scene.rings.positions.length / 3)
       }
@@ -657,7 +688,7 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
       if (tractsVao && lineFade > 0.01) {
         gl.disable(gl.CULL_FACE)
         gl.depthMask(false)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        applyGlowBlend()
         gl.useProgram(tractProg.program)
         gl.uniformMatrix4fv(tractProg.uniforms.uModelView, false, mvMat)
         gl.uniformMatrix4fv(tractProg.uniforms.uProj, false, projMat)
@@ -667,6 +698,7 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         gl.uniform3f(tractProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(tractProg.uniforms.uPointerActive, ptrActive)
         gl.uniform4fv(tractProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(tractProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(tractsVao)
         gl.drawArrays(gl.LINES, 0, scene.tracts.positions.length / 3)
       }
@@ -674,7 +706,7 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
       if (wireVao && lineFade > 0.01) {
         gl.disable(gl.CULL_FACE)
         gl.depthMask(false)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        applyGlowBlend()
         gl.useProgram(tractProg.program)
         gl.uniformMatrix4fv(tractProg.uniforms.uModelView, false, mvMat)
         gl.uniformMatrix4fv(tractProg.uniforms.uProj, false, projMat)
@@ -684,23 +716,25 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         gl.uniform3f(tractProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(tractProg.uniforms.uPointerActive, ptrActive)
         gl.uniform4fv(tractProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(tractProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(wireVao)
         gl.drawArrays(gl.LINES, 0, scene.wireframe.positions.length / 3)
       }
 
       if (nodesVao) {
         gl.depthMask(false)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+        applyGlowBlend()
         gl.useProgram(pointProg.program)
         gl.uniformMatrix4fv(pointProg.uniforms.uModelView, false, mvMat)
         gl.uniformMatrix4fv(pointProg.uniforms.uProj, false, projMat)
         gl.uniform1f(pointProg.uniforms.uTime, simTime)
         gl.uniform1f(pointProg.uniforms.uDpr, dpr)
-        gl.uniform1f(pointProg.uniforms.uPointScale, 2.2)
+        gl.uniform1f(pointProg.uniforms.uPointScale, isLight ? 2.1 : 2.2)
         gl.uniform1f(pointProg.uniforms.uScatter, scatter)
         gl.uniform3f(pointProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(pointProg.uniforms.uPointerActive, ptrActive)
         gl.uniform4fv(pointProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(pointProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(nodesVao)
         gl.drawArrays(gl.POINTS, 0, scene.nodes.positions.length / 3)
       }
@@ -709,17 +743,18 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
         gl.enable(gl.CULL_FACE)
         gl.cullFace(gl.BACK)
         gl.depthMask(true)
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+        applySurfaceBlend()
         gl.useProgram(surfaceProg.program)
         gl.uniformMatrix4fv(surfaceProg.uniforms.uModelView, false, mvMat)
         gl.uniformMatrix4fv(surfaceProg.uniforms.uProj, false, projMat)
         gl.uniformMatrix3fv(surfaceProg.uniforms.uNormalMat, false, normMat)
         gl.uniform1f(surfaceProg.uniforms.uTime, simTime)
-        gl.uniform1f(surfaceProg.uniforms.uPassOpacity, 0.92 * surfaceFade)
+        gl.uniform1f(surfaceProg.uniforms.uPassOpacity, (isLight ? 0.78 : 0.92) * surfaceFade)
         gl.uniform1f(surfaceProg.uniforms.uScatter, scatter)
         gl.uniform3f(surfaceProg.uniforms.uPointerLocal, ptrLocal[0], ptrLocal[1], ptrLocal[2])
         gl.uniform1f(surfaceProg.uniforms.uPointerActive, ptrActive)
         gl.uniform4fv(surfaceProg.uniforms['uBursts[0]'], burstFlat)
+        gl.uniform1f(surfaceProg.uniforms.uLightMode, lightFlag)
         gl.bindVertexArray(surfaceVao)
         gl.drawElements(gl.TRIANGLES, scene.surface.indices.length, surfaceIndexType, 0)
       }
@@ -731,9 +766,16 @@ export function NeuralBrainCanvas({ pulseBurst = 0, entering = false }: NeuralBr
       }
     }
 
+    redrawRef.current = () => {
+      if (reducedMotion) {
+        animId = requestAnimationFrame(renderFrame)
+      }
+    }
+
     animId = requestAnimationFrame(renderFrame)
 
     return () => {
+      redrawRef.current = null
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
       window.removeEventListener('mousemove', onMouseMove)

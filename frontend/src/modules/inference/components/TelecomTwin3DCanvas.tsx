@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Cpu, RotateCcw, Sparkles, Zap } from 'lucide-react'
 import { InfoTip } from '../../../components/InfoTip'
+import { useTheme } from '../../../context/ThemeContext'
 import type { LayerTrace, PredictionResponse } from '../../../types/index'
 
 export type EnterpriseAreaKind = 'retencion' | 'noc' | 'antifraude' | 'comercial' | 'general'
@@ -52,6 +53,14 @@ const LAYER_COLORS = [
   { main: '#38bdf8', glow: 'rgba(56, 189, 248, 0.45)', badge: 'text-sky-300 border-sky-500/35 bg-sky-500/12' },
 ]
 
+const LAYER_COLORS_LIGHT = [
+  { main: '#0d9488', glow: 'rgba(13, 148, 136, 0.28)', badge: 'text-teal-700 border-teal-500/40 bg-teal-500/10' },
+  { main: '#0284c7', glow: 'rgba(2, 132, 199, 0.28)', badge: 'text-sky-700 border-sky-500/40 bg-sky-500/10' },
+  { main: '#4f46e5', glow: 'rgba(79, 70, 229, 0.28)', badge: 'text-indigo-700 border-indigo-500/40 bg-indigo-500/10' },
+  { main: '#7c3aed', glow: 'rgba(124, 58, 237, 0.28)', badge: 'text-purple-700 border-purple-500/40 bg-purple-500/10' },
+  { main: '#0369a1', glow: 'rgba(3, 105, 161, 0.28)', badge: 'text-cyan-700 border-cyan-500/40 bg-cyan-500/10' },
+]
+
 export function TelecomTwin3DCanvas({
   areaKind,
   features,
@@ -61,6 +70,9 @@ export function TelecomTwin3DCanvas({
   result,
   phaseText,
 }: TelecomTwin3DCanvasProps) {
+  const { mode } = useTheme()
+  const isLight = mode === 'light'
+  const activeLayerColors = isLight ? LAYER_COLORS_LIGHT : LAYER_COLORS
   const [hoveredNeuron, setHoveredNeuron] = useState<PositionedNeuron | null>(null)
   const [selectedLayerIdx, setSelectedLayerIdx] = useState<number | null>(null)
   const [stageProgress, setStageProgress] = useState<number>(0)
@@ -208,8 +220,8 @@ export function TelecomTwin3DCanvas({
           : Math.min(7, Math.max(4, rawCount))
 
       const palette = isOutput
-        ? { main: auraRgb.hex, glow: `rgba(${auraRgb.r}, ${auraRgb.g}, ${auraRgb.b}, 0.55)` }
-        : LAYER_COLORS[lIdx % LAYER_COLORS.length]
+        ? { main: auraRgb.hex, glow: `rgba(${auraRgb.r}, ${auraRgb.g}, ${auraRgb.b}, ${isLight ? 0.34 : 0.55})` }
+        : activeLayerColors[lIdx % activeLayerColors.length]
 
       const colSpanH = count === 1 ? 0 : usableH * (count <= 3 ? 0.45 : count <= 5 ? 0.76 : 0.92)
       const startY = (topY + botY) / 2 - colSpanH / 2
@@ -289,6 +301,8 @@ export function TelecomTwin3DCanvas({
     }
   }, [
     visualLayers,
+    activeLayerColors,
+    isLight,
     auraRgb.hex,
     auraRgb.r,
     auraRgb.g,
@@ -377,12 +391,19 @@ export function TelecomTwin3DCanvas({
         </div>
       </div>
 
-      <div className="relative flex-1 min-h-[325px] sm:min-h-[355px] bg-gradient-to-b from-slate-950/95 via-[#061024] to-slate-950/95 flex items-center justify-center overflow-hidden">
+      <div
+        className={`relative flex-1 min-h-[325px] sm:min-h-[355px] flex items-center justify-center overflow-hidden ${
+          isLight
+            ? 'bg-gradient-to-b from-slate-50 via-sky-50/60 to-indigo-50/45'
+            : 'bg-gradient-to-b from-slate-950/95 via-[#061024] to-slate-950/95'
+        }`}
+      >
         <div
-          className="pointer-events-none absolute inset-0 opacity-25"
+          className={`pointer-events-none absolute inset-0 ${isLight ? 'opacity-45' : 'opacity-25'}`}
           style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.22) 1px, transparent 0)',
+            backgroundImage: isLight
+              ? 'radial-gradient(circle at 1px 1px, rgba(2, 132, 199, 0.16) 1px, transparent 0)'
+              : 'radial-gradient(circle at 1px 1px, rgba(56, 189, 248, 0.22) 1px, transparent 0)',
             backgroundSize: '24px 24px',
           }}
         />
@@ -405,8 +426,8 @@ export function TelecomTwin3DCanvas({
               x2={viewBoxW}
               y2="0"
             >
-              <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.95" />
-              <stop offset="50%" stopColor="#22d3ee" stopOpacity="0.98" />
+              <stop offset="0%" stopColor={isLight ? '#0d9488' : '#2dd4bf'} stopOpacity="0.95" />
+              <stop offset="50%" stopColor={isLight ? '#0284c7' : '#22d3ee'} stopOpacity="0.98" />
               <stop offset="100%" stopColor={auraRgb.hex} stopOpacity="0.98" />
             </linearGradient>
           </defs>
@@ -420,7 +441,7 @@ export function TelecomTwin3DCanvas({
             const palette =
               lIdx === visualLayers.length - 1
                 ? { main: auraRgb.hex }
-                : LAYER_COLORS[lIdx % LAYER_COLORS.length]
+                : activeLayerColors[lIdx % activeLayerColors.length]
 
             return (
               <g key={`col-bg-${lIdx}`} opacity={isFocused ? 1 : 0.28}>
@@ -430,8 +451,22 @@ export function TelecomTwin3DCanvas({
                   width={76}
                   height={viewBoxH - 68}
                   rx={16}
-                  fill={isStageActive ? 'rgba(34, 211, 238, 0.09)' : 'rgba(15, 23, 42, 0.45)'}
-                  stroke={isStageActive ? palette.main : 'rgba(51, 65, 85, 0.45)'}
+                  fill={
+                    isLight
+                      ? isStageActive
+                        ? 'rgba(14, 165, 233, 0.12)'
+                        : 'rgba(255, 255, 255, 0.86)'
+                      : isStageActive
+                        ? 'rgba(34, 211, 238, 0.09)'
+                        : 'rgba(15, 23, 42, 0.45)'
+                  }
+                  stroke={
+                    isStageActive
+                      ? palette.main
+                      : isLight
+                        ? 'rgba(148, 163, 184, 0.48)'
+                        : 'rgba(51, 65, 85, 0.45)'
+                  }
                   strokeWidth={isStageActive ? 1.8 : 1}
                   strokeDasharray={lIdx === 0 || lIdx === visualLayers.length - 1 ? undefined : '4 3'}
                 />
@@ -439,7 +474,7 @@ export function TelecomTwin3DCanvas({
                   x={cx}
                   y={38}
                   textAnchor="middle"
-                  fill={isStageActive ? '#ffffff' : palette.main}
+                  fill={isStageActive ? (isLight ? '#0f172a' : '#ffffff') : palette.main}
                   className="text-[9.5px] font-mono font-bold uppercase"
                 >
                   {lIdx === 0
@@ -452,7 +487,7 @@ export function TelecomTwin3DCanvas({
                   x={cx}
                   y={50}
                   textAnchor="middle"
-                  fill="#94a3b8"
+                  fill={isLight ? '#475569' : '#94a3b8'}
                   className="text-[8.5px] font-mono"
                 >
                   {layer.type === 'BatchNormalization' ? 'BatchNorm' : layer.type} · {layer.units}u
@@ -461,7 +496,7 @@ export function TelecomTwin3DCanvas({
                   x={cx}
                   y={viewBoxH - 54}
                   textAnchor="middle"
-                  fill="#64748b"
+                  fill={isLight ? '#64748b' : '#64748b'}
                   className="text-[8.5px] font-mono"
                 >
                   {layer.activation}
@@ -491,18 +526,18 @@ export function TelecomTwin3DCanvas({
                 (selectedLayerIdx !== null && !isLayerSelected)
 
               const strokeOpacity = dimmed
-                ? 0.04
+                ? isLight ? 0.06 : 0.04
                 : isNeuronConnected
-                  ? 0.9
+                  ? 0.92
                   : isLayerStage
-                    ? 0.72
-                    : 0.14 + edge.weight * 0.16
+                    ? 0.78
+                    : (isLight ? 0.2 : 0.14) + edge.weight * (isLight ? 0.22 : 0.16)
 
               const strokeW = isNeuronConnected
                 ? 2.1
                 : isLayerStage
                   ? 1.75
-                  : 0.7 + edge.weight * 0.65
+                  : 0.75 + edge.weight * 0.65
 
               return (
                 <path
@@ -530,8 +565,8 @@ export function TelecomTwin3DCanvas({
 
                 return (
                   <g key={`pulse-${edge.id}`} transform={`translate(${px}, ${py})`}>
-                    <circle r={6.5} fill={edge.color} opacity={0.32} />
-                    <circle r={3.2} fill="#ffffff" filter="url(#nl-neuron-glow)" />
+                    <circle r={6.5} fill={edge.color} opacity={isLight ? 0.28 : 0.32} />
+                    <circle r={3.2} fill={isLight ? edge.color : '#ffffff'} filter={isLight ? undefined : 'url(#nl-neuron-glow)'} />
                   </g>
                 )
               })}
@@ -562,7 +597,7 @@ export function TelecomTwin3DCanvas({
                       fill="none"
                       stroke={node.color}
                       strokeWidth={isStageActive || isHovered ? 1.8 : 1.1}
-                      strokeOpacity={isStageActive || isHovered ? 0.8 : 0.35}
+                      strokeOpacity={isStageActive || isHovered ? 0.8 : 0.4}
                       strokeDasharray={node.isOutput ? '3 2' : undefined}
                     />
                   )}
@@ -570,27 +605,27 @@ export function TelecomTwin3DCanvas({
                   <circle
                     r={r + 2.8}
                     fill={node.glowColor}
-                    opacity={isStageActive || isHovered ? 0.58 : 0.16 + node.activation * 0.24}
+                    opacity={isStageActive || isHovered ? (isLight ? 0.45 : 0.58) : (isLight ? 0.12 : 0.16) + node.activation * (isLight ? 0.18 : 0.24)}
                   />
 
                   <circle
                     r={r}
-                    fill="#071126"
+                    fill={isLight ? (node.isOutput ? node.color : '#ffffff') : '#071126'}
                     stroke={node.color}
                     strokeWidth={isHovered || isStageActive ? 2.6 : 1.8}
-                    filter={isStageActive || node.isOutput ? 'url(#nl-neuron-glow)' : undefined}
+                    filter={!isLight && (isStageActive || node.isOutput) ? 'url(#nl-neuron-glow)' : undefined}
                   />
 
                   <circle
                     r={Math.max(3, r * (0.35 + node.activation * 0.42))}
                     fill={node.color}
-                    opacity={0.75 + node.activation * 0.25}
+                    opacity={isLight ? (node.isOutput ? 0.2 : 0.14 + node.activation * 0.16) : 0.75 + node.activation * 0.25}
                   />
 
                   <text
                     y={2.8}
                     textAnchor="middle"
-                    fill="#ffffff"
+                    fill={isLight ? (node.isOutput ? '#ffffff' : '#0f172a') : '#ffffff'}
                     className="text-[7.5px] font-mono font-bold pointer-events-none"
                   >
                     {node.isOutput && result?.probability !== null && result?.probability !== undefined
@@ -603,7 +638,7 @@ export function TelecomTwin3DCanvas({
                       x={-17}
                       y={3}
                       textAnchor="end"
-                      fill="#94a3b8"
+                      fill={isLight ? '#334155' : '#94a3b8'}
                       className="text-[8.5px] font-mono"
                     >
                       {node.label.length > 12 ? `${node.label.slice(0, 12)}…` : node.label}

@@ -1,14 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
 export type ThemeMode = 'dark' | 'light'
+export type ThemePreference = 'system' | ThemeMode
 export type AccentPalette = 'emerald_copper' | 'cobalt_gold' | 'crimson_titanium' | 'quantum_indigo'
 
 interface ThemeContextType {
   mode: ThemeMode
+  preference: ThemePreference
+  systemMode: ThemeMode
   palette: AccentPalette
   toggleMode: () => void
-  setMode: (m: ThemeMode) => void
+  setMode: (m: ThemePreference) => void
   setPalette: (p: AccentPalette) => void
+}
+
+function getSystemThemeMode(): ThemeMode {
+  if (typeof window === 'undefined' || !window.matchMedia) return 'dark'
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 export const PALETTE_META: Record<AccentPalette, {
@@ -44,7 +52,9 @@ export const PALETTE_META: Record<AccentPalette, {
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: 'light',
+  mode: 'dark',
+  preference: 'system',
+  systemMode: 'dark',
   palette: 'emerald_copper',
   toggleMode: () => {},
   setMode: () => {},
@@ -52,9 +62,10 @@ const ThemeContext = createContext<ThemeContextType>({
 })
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(() => {
+  const [systemMode, setSystemMode] = useState<ThemeMode>(getSystemThemeMode)
+  const [preference, setPreferenceState] = useState<ThemePreference>(() => {
     const saved = localStorage.getItem('nl_theme_mode')
-    return (saved === 'light' || saved === 'dark') ? saved : 'light'
+    return (saved === 'light' || saved === 'dark' || saved === 'system') ? saved : 'system'
   })
 
   const [palette, setPaletteState] = useState<AccentPalette>(() => {
@@ -63,9 +74,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
-    localStorage.setItem('nl_theme_mode', mode)
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (e: MediaQueryListEvent) => {
+      setSystemMode(e.matches ? 'dark' : 'light')
+    }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  const mode: ThemeMode = preference === 'system' ? systemMode : preference
+
+  useEffect(() => {
+    localStorage.setItem('nl_theme_mode', preference)
     document.documentElement.setAttribute('data-theme', mode)
-  }, [mode])
+  }, [preference, mode])
 
   useEffect(() => {
     localStorage.setItem('nl_theme_palette', palette)
@@ -73,16 +96,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [palette])
 
   function toggleMode() {
-    setModeState(prev => (prev === 'dark' ? 'light' : 'dark'))
+    setPreferenceState(mode === 'dark' ? 'light' : 'dark')
   }
 
   return (
     <ThemeContext.Provider
       value={{
         mode,
+        preference,
+        systemMode,
         palette,
         toggleMode,
-        setMode: setModeState,
+        setMode: setPreferenceState,
         setPalette: setPaletteState
       }}
     >

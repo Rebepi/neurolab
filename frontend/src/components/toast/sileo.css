@@ -140,6 +140,54 @@ html .nl-toasts .nl-toast-close {
   font-size: 12px;
 }
 
+html[data-theme="light"] .nl-toasts {
+  --sileo-state-success: #059669;
+  --sileo-state-error: #e11d48;
+  --sileo-state-warning: #d97706;
+  --sileo-state-info: #0284c7;
+  --sileo-state-loading: #64748b;
+  --sileo-state-action: #0d9488;
+}
+
+html[data-theme="light"] .nl-toasts [data-sileo-toast] {
+  color: #334155;
+  filter: drop-shadow(0 12px 28px rgb(15 23 42 / 14%)) drop-shadow(0 0 1px rgb(148 163 184 / 70%));
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-description {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-control {
+  border: 1px solid rgb(148 163 184 / 40%);
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-control:hover {
+  background: #e2e8f0;
+  color: #020617;
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-close {
+  background: transparent;
+  border: 0;
+  color: #64748b;
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-close:hover {
+  background: rgb(15 23 42 / 6%);
+  color: #0f172a;
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-details {
+  border-top: 1px solid rgb(148 163 184 / 30%);
+}
+
+html[data-theme="light"] .nl-toasts .nl-toast-feedback {
+  color: #b45309;
+}
+
 @media (max-width: 390px) {
   html .nl-toasts [data-sileo-viewport][data-position$="center"] {
     transform: translateX(-50%) scale(0.9);
