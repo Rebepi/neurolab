@@ -511,3 +511,73 @@ def test_dataset_automl_advanced_cleaning_and_leakage(client: TestClient):
     finally:
         if ds_id:
             client.delete(f"/api/v1/datasets/{ds_id}", headers=_auth_headers(eng_tok))
+
+
+def test_multiclass_risk_semantic_and_catalog_predict_csv(client: TestClient):
+    from app.routes.models import _classify_multiclass_risk
+
+    # Orden alfabético NOC: ['Degradado', 'Falla Critica', 'Operativo']
+    assert _classify_multiclass_risk("Operativo", 2, 3) == "BAJO"
+    assert _classify_multiclass_risk("Degradado", 0, 3) == "MEDIO"
+    assert _classify_multiclass_risk("Falla Critica", 1, 3) == "ALTO"
+    # Orden alfabético NOC 5G: ['Critico', 'Estable', 'Saturado']
+    assert _classify_multiclass_risk("Critico", 0, 3) == "ALTO"
+    assert _classify_multiclass_risk("Estable", 1, 3) == "BAJO"
+    assert _classify_multiclass_risk("Saturado", 2, 3) == "MEDIO"
+
+    admin_tok = _login(client, "admin@neurolab.io", "admin123")
+    cat_res = client.get("/api/v1/models/catalog", headers=_auth_headers(admin_tok))
+    assert cat_res.status_code == 200, cat_res.text
+    catalog = cat_res.json()
+    assert isinstance(catalog, list) and len(catalog) > 0
+
+    # Validar predict-batch semántico en un modelo multiclase si existe
+    noc_model = next(
+        (m for m in catalog if (m.get("dataset_metadata") or {}).get("problem_type") == "multiclass_classification"),
+        None,
+    )
+    if noc_model:
+        b_res = client.post(
+            f"/api/v1/models/{noc_model['id']}/predict-batch",
+            headers=_auth_headers(admin_tok),
+            json={"limit": 10, "offset": 0},
+        )
+        assert b_res.status_code == 200, b_res.text
+        for item in b_res.json().get("items", []):
+            pred_s = str(item["prediction"]).lower()
+            if "operativ" in pred_s or "establ" in pred_s:
+                assert item["risk_level"] == "BAJO"
+            elif "falla" in pred_s or "crit" in pred_s:
+                assert item["risk_level"] == "ALTO"
+            elif "degrad" in pred_s or "satur" in pred_s:
+                assert item["risk_level"] == "MEDIO"
+
+    # Validar predict-csv con 2 filas usando el primer modelo binario disponible
+    bin_model = next(
+        (m for m in catalog if m.get("project_id") == "prj-area-retencion"),
+        catalog[0],
+    )
+    cols = [
+        c for c in (bin_model.get("dataset_metadata") or {}).get("columns_summary", [])
+        if not c.get("is_target") and not c.get("excluded_reason")
+    ]
+    if cols:
+        header = ",".join(c["name"] for c in cols)
+        row_vals = []
+        for c in cols:
+            if c.get("dtype") == "numeric":
+                row_vals.append(str(round(float(c.get("mean") or 0), 2)))
+            else:
+                tops = list((c.get("top_values") or {}).keys())
+                row_vals.append(str(tops[0]) if tops else "Si")
+        csv_payload = f"{header}\n{','.join(row_vals)}\n{','.join(row_vals)}\n".encode("utf-8")
+        csv_res = client.post(
+            f"/api/v1/models/{bin_model['id']}/predict-csv",
+            headers=_auth_headers(admin_tok),
+            files={"file": ("test_batch.csv", csv_payload, "text/csv")},
+        )
+        assert csv_res.status_code == 200, csv_res.text
+        data = csv_res.json()
+        assert data["total_rows"] == 2
+        assert len(data["items"]) == 2
+        assert "prediccion_ia" in data["csv_content"]

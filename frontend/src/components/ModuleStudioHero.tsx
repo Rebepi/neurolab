@@ -60,7 +60,7 @@ export function ModuleStudioHero({
   return (
     <div
       className={`nl-cyber-panel animate-card-reveal rounded-2xl px-4 py-2.5 flex flex-wrap ${
-        center ? 'xl:flex-nowrap' : ''
+        center ? '2xl:flex-nowrap' : ''
       } items-center justify-between gap-3 ${className}`}
     >
       {(liveBadge || (metrics && metrics.length > 0)) && (

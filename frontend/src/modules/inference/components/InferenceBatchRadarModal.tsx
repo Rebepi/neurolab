@@ -93,12 +93,12 @@ export function InferenceBatchRadarModal({
                 </h2>
                 <InfoTip
                   title="Evaluación Masiva por Lotes"
-                  text="Envía 25 registros reales del CSV del área en una sola llamada al binario .keras, los ordena por nivel de prioridad y permite cargar cualquiera directamente en el Gemelo 3D."
+                  text="Envía 25 registros reales del CSV del área en una sola llamada al binario .keras, los ordena por nivel de prioridad y permite cargar cualquiera directamente en el simulador en vivo."
                   size="xs"
                 />
               </div>
               <p className="text-xs text-slate-400 truncate mt-0.5">
-                Escanea lotes de 25 registros reales sobre tu red neuronal entrenada y sincronízalos en el Gemelo 3D con un clic.
+                Escanea lotes de 25 registros reales sobre tu red neuronal entrenada y sincronízalos en el simulador en vivo con un clic.
               </p>
             </div>
           </div>
@@ -266,7 +266,7 @@ export function InferenceBatchRadarModal({
                                 }}
                                 className="px-2.5 py-1 rounded-lg bg-indigo-600/85 hover:bg-indigo-500 text-white text-[11px] font-sans font-semibold transition-colors"
                               >
-                                Cargar en 3D
+                                Cargar caso
                               </button>
                             </td>
                           </tr>

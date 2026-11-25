@@ -346,8 +346,8 @@ export default function DashboardModule({
     },
     {
       num: '5',
-      title: 'Usar 3D',
-      sub: 'Gemelo Digital en vivo',
+      title: 'Inferencia',
+      sub: 'Simulador en vivo',
       module: 'inference',
       icon: Rocket,
       done: activeCounts.models > 0,
@@ -909,7 +909,7 @@ export default function DashboardModule({
               </h2>
               <InfoTip
                 title="Arquitectura Multi-Área y Modelo Global 360°"
-                text="Cada tarjeta representa un área operativa con múltiples datasets y modelos reales .keras. Haz clic en cualquiera para activarla o pulsa Usar 3D."
+                text="Cada tarjeta representa un área operativa con múltiples datasets y modelos reales .keras. Haz clic en cualquiera para activarla o pulsa Inferencia."
                 size="xs"
               />
             </div>
@@ -991,7 +991,7 @@ export default function DashboardModule({
                       }}
                       className="inline-flex items-center gap-1 text-cyan-300 hover:text-white font-bold transition-colors"
                     >
-                      <span>{item.modelsCount > 0 ? 'Usar 3D' : 'Entrenar'}</span>
+                      <span>{item.modelsCount > 0 ? 'Inferencia' : 'Entrenar'}</span>
                       <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>

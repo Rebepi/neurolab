@@ -68,7 +68,7 @@ export function NeuronDiagramSvg({
         </circle>
 
         <g transform="translate(88, 82)">
-          <circle r="30" fill="#0f172a" stroke="#38bdf8" strokeWidth="2.5" />
+          <circle r="30" fill="#0c172e" stroke="#38bdf8" strokeWidth="2.5" />
           <text y="-7" textAnchor="middle" fill="#94a3b8" fontSize="10.5" fontWeight="600">Entrada x₁</text>
           <text y="11" textAnchor="middle" fill="#f8fafc" fontWeight="700" fontSize="13" fontFamily="monospace">
             {x1.toFixed(2)}
@@ -76,7 +76,7 @@ export function NeuronDiagramSvg({
         </g>
 
         <g transform="translate(88, 216)">
-          <circle r="30" fill="#0f172a" stroke="#38bdf8" strokeWidth="2.5" />
+          <circle r="30" fill="#0c172e" stroke="#38bdf8" strokeWidth="2.5" />
           <text y="-7" textAnchor="middle" fill="#94a3b8" fontSize="10.5" fontWeight="600">Entrada x₂</text>
           <text y="11" textAnchor="middle" fill="#f8fafc" fontWeight="700" fontSize="13" fontFamily="monospace">
             {x2.toFixed(2)}
@@ -84,14 +84,14 @@ export function NeuronDiagramSvg({
         </g>
 
         <g transform="translate(212, 92)">
-          <rect x="-42" y="-12" width="84" height="24" rx="6" fill="#0f172a" stroke={c1Color} strokeWidth="1.2" strokeOpacity="0.65" />
+          <rect x="-42" y="-12" width="84" height="24" rx="6" fill="#0c172e" stroke={c1Color} strokeWidth="1.2" strokeOpacity="0.65" />
           <text y="4" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="600" fontFamily="monospace">
             w₁ = {w1.toFixed(2)}
           </text>
         </g>
 
         <g transform="translate(212, 206)">
-          <rect x="-42" y="-12" width="84" height="24" rx="6" fill="#0f172a" stroke={c2Color} strokeWidth="1.2" strokeOpacity="0.65" />
+          <rect x="-42" y="-12" width="84" height="24" rx="6" fill="#0c172e" stroke={c2Color} strokeWidth="1.2" strokeOpacity="0.65" />
           <text y="4" textAnchor="middle" fill="#e2e8f0" fontSize="11" fontWeight="600" fontFamily="monospace">
             w₂ = {w2.toFixed(2)}
           </text>
@@ -126,7 +126,7 @@ export function NeuronDiagramSvg({
         <g transform="translate(544, 152)">
           <circle
             r="38"
-            fill="#0f172a"
+            fill="#0c172e"
             stroke={isFired ? '#2dd4bf' : '#a855f7'}
             strokeWidth="3"
           />

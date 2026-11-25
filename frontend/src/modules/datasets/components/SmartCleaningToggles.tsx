@@ -1,5 +1,5 @@
 import { CalendarClock, Layers, Scale, Split, Type } from 'lucide-react'
-import { InfoTip } from '../../../components/InfoTip'
+import { InfoTip, SystemTooltip } from '../../../components/InfoTip'
 
 interface SmartCleaningTogglesProps {
   normalizeText: boolean
@@ -103,20 +103,24 @@ export function SmartCleaningToggles({
         {items.map(item => {
           const Icon = item.icon
           return (
-            <div
+            <SystemTooltip
               key={item.id}
-              className={`rounded-xl border p-2.5 transition-all flex flex-col justify-between gap-2 ${
-                item.active
-                  ? 'bg-teal-500/15 border-teal-400/60 text-teal-100'
-                  : 'bg-slate-900/75 border-slate-800 text-slate-300'
-              }`}
+              title={item.tipTitle}
+              label={item.tipText}
+              hint={item.tipHint}
+              side="top"
+              className="flex w-full"
             >
-              <div className="flex items-start justify-between gap-1.5">
-                <button
-                  type="button"
-                  onClick={item.onToggle}
-                  className="flex items-start gap-2 text-left flex-1 min-w-0"
-                >
+              <button
+                type="button"
+                onClick={item.onToggle}
+                className={`w-full text-left rounded-xl border p-2.5 transition-all flex flex-col justify-between gap-2 ${
+                  item.active
+                    ? 'bg-teal-500/15 border-teal-400/60 text-teal-100'
+                    : 'bg-slate-900/75 border-slate-800 text-slate-300 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start gap-2 min-w-0">
                   <Icon
                     className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${
                       item.active ? 'text-teal-300' : 'text-slate-400'
@@ -126,30 +130,20 @@ export function SmartCleaningToggles({
                     <p className="text-[11px] font-semibold leading-tight">{item.label}</p>
                     <p className="text-[10px] opacity-75 leading-tight mt-0.5">{item.sublabel}</p>
                   </div>
-                </button>
-                <InfoTip
-                  title={item.tipTitle}
-                  text={item.tipText}
-                  hint={item.tipHint}
-                  side="top"
-                />
-              </div>
+                </div>
 
-              <button
-                type="button"
-                onClick={item.onToggle}
-                className="flex items-center justify-between text-[10px] font-mono pt-1 border-t border-slate-800/70 w-full"
-              >
-                <span className="opacity-70">{item.active ? 'Aplicar' : 'Omitir'}</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded font-bold ${
-                    item.active ? 'bg-teal-400/20 text-teal-300' : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {item.active ? 'SI' : 'NO'}
-                </span>
+                <div className="flex items-center justify-between text-[10px] font-mono pt-1 border-t border-slate-800/70 w-full">
+                  <span className="opacity-70">{item.active ? 'Aplicar' : 'Omitir'}</span>
+                  <span
+                    className={`px-1.5 py-0.5 rounded font-bold ${
+                      item.active ? 'bg-teal-400/20 text-teal-300' : 'bg-slate-800 text-slate-400'
+                    }`}
+                  >
+                    {item.active ? 'SI' : 'NO'}
+                  </span>
+                </div>
               </button>
-            </div>
+            </SystemTooltip>
           )
         })}
       </div>

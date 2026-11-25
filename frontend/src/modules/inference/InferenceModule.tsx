@@ -605,7 +605,7 @@ export default function InferenceModule({
     setFeatures(item.features)
     setCounterfactual(null)
     executeAnimatedInference(item.features)
-    toast.info('Registro cargado en Gemelo 3D', `Fila #${item.row_index} sincronizada`)
+    toast.info('Registro cargado en el simulador', `Fila #${item.row_index} sincronizada`)
   }
 
   useEffect(() => {
@@ -761,7 +761,7 @@ export default function InferenceModule({
     return (
       <div className="flex flex-col items-center justify-center min-h-72 gap-3 text-slate-400">
         <Cpu className="w-12 h-12 text-slate-600" />
-        <p className="text-base">Selecciona un área corporativa para abrir su Gemelo Digital 3D</p>
+        <p className="text-base">Selecciona un área corporativa para abrir el laboratorio de inferencia en vivo</p>
       </div>
     )
   }
@@ -778,7 +778,7 @@ export default function InferenceModule({
           </h3>
           <p className="text-slate-400 text-xs mt-1 max-w-md">
             Entrena el dataset de esta área en el Paso 04 para generar su binario{' '}
-            <code className="text-indigo-300">.keras</code> y operarlo aquí en su Gemelo Digital 3D.
+            <code className="text-indigo-300">.keras</code> y operarlo aquí en inferencia en vivo.
           </p>
         </div>
         {onNavigate && (
@@ -804,14 +804,14 @@ export default function InferenceModule({
     <div className="flex-1 flex flex-col gap-3.5 min-h-0">
       <ModuleStudioHero
         variant="twin5g"
-        eyebrow="SIMULACIÓN 3D TELECOM · INFERENCIA EN VIVO .KERAS"
-        title="Gemelo Digital 3D"
+        eyebrow="GRAFO NEURONAL TELECOM · INFERENCIA EN VIVO .KERAS"
+        title="Inferencia en Vivo"
         highlight="& Uso Real"
         subtitle="Opera modelos reales TensorFlow/Keras por área corporativa con simulación What-If y escaneo masivo."
         icon={Cpu}
         liveBadge="TENSORFLOW / KERAS EN VIVO"
         tipTitle="Centro Operativo de Modelos Entrenados"
-        tipText="Opera en vivo los modelos .keras entrenados junto al Gemelo Digital 3D, ejecuta escenarios rápidos, ajusta variables o lanza escaneos por lote."
+        tipText="Opera en vivo los modelos .keras entrenados junto al grafo neuronal interactivo, ejecuta escenarios rápidos, ajusta variables o lanza escaneos por lote."
         metrics={[
           { label: 'Modelos', value: models.length, tone: 'cyan' },
           { label: 'Variables', value: inputColumns.length, tone: 'teal' },
@@ -913,8 +913,8 @@ export default function InferenceModule({
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Escenarios Rápidos &amp; Disparo Keras</span>
                   <InfoTip
-                    title="Control Directo del Gemelo 3D"
-                    text="Selecciona un perfil operativo o carga una fila real del CSV para disparar la propagación neuronal en 3D sin salir de la vista."
+                    title="Control Directo de Inferencia"
+                    text="Selecciona un perfil operativo o carga una fila real del CSV para disparar la propagación neuronal en vivo sin salir de la vista."
                     size="xs"
                   />
                 </span>
@@ -1158,10 +1158,10 @@ export default function InferenceModule({
                   <Play className="w-5 h-5 text-teal-400" />
                 </div>
                 <p className="text-xs font-semibold text-slate-200">
-                  Gemelo 3D listo para evaluación en vivo
+                  Simulador listo para evaluación en vivo
                 </p>
                 <p className="text-xs max-w-xs leading-relaxed text-slate-400">
-                  Elige uno de los <strong className="text-white">Escenarios Rápidos</strong> debajo del lienzo 3D o pulsa{' '}
+                  Elige uno de los <strong className="text-white">Escenarios Rápidos</strong> debajo del grafo neuronal o pulsa{' '}
                   <strong className="text-cyan-300">«Ejecutar Inferencia (.keras)»</strong> para activar el diagnóstico y los contrafactuales What-If.
                 </p>
                 <button

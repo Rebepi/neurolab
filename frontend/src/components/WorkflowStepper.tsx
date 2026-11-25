@@ -26,7 +26,7 @@ const STEPS: Array<{
   { id: 'training', num: '04', label: 'Entrenamiento', sublabel: 'Motor TensorFlow', icon: Play, countKey: 'jobs' },
   { id: 'evaluation', num: '05', label: 'Evaluación', sublabel: 'Curvas & Test', icon: BarChart2 },
   { id: 'models', num: '06', label: 'Registry', sublabel: 'Versión & Export', icon: PackageCheck, countKey: 'models' },
-  { id: 'inference', num: '07', label: 'Uso Modelo', sublabel: 'Predicción Animada', icon: Cpu },
+  { id: 'inference', num: '07', label: 'Inferencia', sublabel: 'Grafo & What-If', icon: Cpu },
 ]
 
 export default function WorkflowStepper({ activeModule, onNavigate, currentProject }: WorkflowStepperProps) {
@@ -97,7 +97,7 @@ export default function WorkflowStepper({ activeModule, onNavigate, currentProje
           </span>
           <InfoTip
             title="Progreso del Proyecto"
-            text="Rastrea las 7 etapas del pipeline desde el workspace hasta el gemelo 3D en vivo."
+            text="Rastrea las 7 etapas del pipeline desde el workspace hasta la inferencia en vivo."
           />
           <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400">
             <div className="w-24 h-1.5 rounded-full bg-slate-800 overflow-hidden">

@@ -18,6 +18,7 @@ const TrainingModule = lazy(() => import('./modules/training/TrainingModule'))
 const EvaluationModule = lazy(() => import('./modules/evaluation/EvaluationModule'))
 const ModelsModule = lazy(() => import('./modules/models/ModelsModule'))
 const InferenceModule = lazy(() => import('./modules/inference/InferenceModule'))
+const PredictModule = lazy(() => import('./modules/predict/PredictModule'))
 const ReportsModule = lazy(() => import('./modules/reports/ReportsModule'))
 const AdminModule = lazy(() => import('./modules/admin/AdminModule'))
 const AuditModule = lazy(() => import('./modules/audit/AuditModule'))
@@ -137,7 +138,9 @@ function AppWorkspace() {
               ? 'overflow-y-auto lg:overflow-hidden print:overflow-visible'
               : activeModule === 'audit'
                 ? 'overflow-y-auto md:overflow-hidden'
-                : 'overflow-y-auto'
+                : activeModule === 'predict'
+                  ? 'overflow-y-auto lg:overflow-hidden'
+                  : 'overflow-y-auto'
           }`}
         >
           <div
@@ -146,7 +149,9 @@ function AppWorkspace() {
                 ? 'min-h-full lg:h-full print:h-auto'
                 : activeModule === 'audit'
                   ? 'min-h-full md:h-full'
-                  : 'min-h-full'
+                  : activeModule === 'predict'
+                    ? 'min-h-full lg:h-full'
+                    : 'min-h-full'
             } flex flex-col`}
           >
             {['projects', 'datasets', 'architectures', 'training', 'evaluation', 'models', 'inference'].includes(activeModule) && (
@@ -161,7 +166,7 @@ function AppWorkspace() {
               <div
                 key={activeModule}
                 className={`animate-module-enter flex-1 flex flex-col ${
-                  activeModule === 'reports'
+                  activeModule === 'reports' || activeModule === 'predict'
                     ? 'lg:min-h-0'
                     : activeModule === 'audit'
                       ? 'md:min-h-0'
@@ -174,6 +179,9 @@ function AppWorkspace() {
                     currentProject={currentProject}
                     onSelectProject={handleProjectSelect}
                   />
+                )}
+                {activeModule === 'predict' && (
+                  <PredictModule onNavigate={handleNavigate} />
                 )}
                 {activeModule === 'projects' && (
                   <ProjectsModule onProjectSelect={handleProjectSelect} currentProject={currentProject} onNavigate={handleNavigate} />

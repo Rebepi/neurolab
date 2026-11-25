@@ -150,7 +150,7 @@ export default function ModelsModule({
         eyebrow="GOBERNANZA DE ARTEFACTOS .KERAS & FIRMAS SHA-256"
         title="Model"
         highlight="Registry"
-        subtitle={`Versionado inmutable, verificación criptográfica y despliegue al Gemelo 3D en ${currentProject.name}.`}
+        subtitle={`Versionado inmutable, verificación criptográfica y despliegue a inferencia en vivo en ${currentProject.name}.`}
         icon={Package}
         tipTitle="Versionado Inmutable de Binarios"
         tipText="Cada entrenamiento certificado sella sus pesos en formato .keras con hash SHA-256 verificable y estados de aprobación."
@@ -205,7 +205,7 @@ export default function ModelsModule({
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <div className="w-40">
+            <div className="w-36">
               <SystemSelect
                 value={statusFilter}
                 onChange={val => {
@@ -218,7 +218,7 @@ export default function ModelsModule({
               />
             </div>
 
-            <div className="w-40">
+            <div className="w-36">
               <SystemSelect
                 value={sortBy}
                 onChange={val => {

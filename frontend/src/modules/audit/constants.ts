@@ -40,6 +40,9 @@ export const ACTION_BADGE: Record<string, string> = {
   TRAINING_CANCELLED: 'bg-slate-600/35 text-slate-300 border border-slate-600/40',
   TRAINING_CANCEL_REQUESTED: 'bg-orange-500/20 text-orange-300 border border-orange-500/35',
   MODEL_STATUS_CHANGED: 'bg-purple-500/20 text-purple-300 border border-purple-500/35',
+  MODEL_BATCH_PREDICTION: 'bg-teal-500/20 text-teal-300 border border-teal-500/35',
+  MODEL_PREDICTION: 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/35',
+  USER_LOGIN: 'bg-sky-500/20 text-sky-300 border border-sky-500/35',
 }
 
 export const AUDIT_ACTION_META: Record<string, AuditActionMeta> = {
@@ -114,6 +117,24 @@ export const AUDIT_ACTION_META: Record<string, AuditActionMeta> = {
     category: 'models',
     severity: 'warning',
     badgeCls: ACTION_BADGE.MODEL_STATUS_CHANGED,
+  },
+  MODEL_BATCH_PREDICTION: {
+    label: 'Predicción CSV en lote',
+    category: 'models',
+    severity: 'info',
+    badgeCls: ACTION_BADGE.MODEL_BATCH_PREDICTION,
+  },
+  MODEL_PREDICTION: {
+    label: 'Predicción ejecutada',
+    category: 'models',
+    severity: 'info',
+    badgeCls: ACTION_BADGE.MODEL_PREDICTION,
+  },
+  USER_LOGIN: {
+    label: 'Inicio de sesión',
+    category: 'system',
+    severity: 'info',
+    badgeCls: ACTION_BADGE.USER_LOGIN,
   },
 }
 
@@ -199,9 +220,15 @@ export function summarizeAuditMetadata(
   if (kind != null && String(kind).trim()) {
     items.push({ label: 'Tipo', value: String(kind) })
   }
-  const rows = meta.total_rows ?? meta.rows
+  const rows = meta.total_rows ?? meta.rows ?? meta.rows_evaluated
   if (rows != null && Number.isFinite(Number(rows))) {
     items.push({ label: 'Filas', value: Number(rows).toLocaleString('es') })
+  }
+  if (typeof meta.filename === 'string' && meta.filename.trim()) {
+    items.push({ label: 'Archivo', value: meta.filename.trim() })
+  }
+  if (meta.high_risk_count != null && Number.isFinite(Number(meta.high_risk_count))) {
+    items.push({ label: 'Riesgo alto', value: String(meta.high_risk_count) })
   }
   if (meta.total_parameters != null && Number.isFinite(Number(meta.total_parameters))) {
     items.push({ label: 'Parámetros', value: Number(meta.total_parameters).toLocaleString('es') })

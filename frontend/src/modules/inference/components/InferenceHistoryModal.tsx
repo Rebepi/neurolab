@@ -64,7 +64,7 @@ export function InferenceHistoryModal({ history, onClose }: InferenceHistoryModa
                 Bitácora de Predicciones en esta Sesión ({history.length})
               </h2>
               <p className="text-xs text-slate-400">
-                Historial cronológico de inferencias individuales ejecutadas sobre el Gemelo 3D.
+                Historial cronológico de inferencias individuales ejecutadas en vivo.
               </p>
             </div>
           </div>
@@ -85,7 +85,7 @@ export function InferenceHistoryModal({ history, onClose }: InferenceHistoryModa
               <Clock className="w-8 h-8 mx-auto text-slate-600" />
               <p className="text-sm font-semibold text-slate-300">Aún no hay predicciones en esta sesión</p>
               <p className="text-xs text-slate-500">
-                Ejecuta cualquier inferencia en el Gemelo 3D para registrarla aquí automáticamente.
+                Ejecuta cualquier inferencia en vivo para registrarla aquí automáticamente.
               </p>
             </div>
           ) : (

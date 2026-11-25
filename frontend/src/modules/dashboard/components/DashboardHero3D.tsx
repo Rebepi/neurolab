@@ -199,7 +199,7 @@ export function DashboardHero3D({
         <img
           ref={imgRef}
           src={isLight ? '/studio/hero-telecom-ai-light.png?v=2' : '/studio/hero-telecom-ai.png'}
-          alt="Aura Telecom AI Studio 3D"
+          alt="Aura Telecom AI Studio"
           className={`w-full h-full object-contain object-right-bottom select-none ${
             isLight ? 'saturate-110' : 'brightness-110 saturate-125'
           }`}
@@ -227,8 +227,8 @@ export function DashboardHero3D({
             PLATAFORMA DE DEEP LEARNING PARA TELECOMUNICACIONES
           </span>
           <InfoTip
-            title="Aura Telecom AI Studio 3D"
-            text="Estudio integral con modelos reales TensorFlow/Keras, fusión intra-área y cross-área 360° y Gemelos Digitales 3D."
+            title="Aura Telecom AI Studio"
+            text="Estudio integral con modelos reales TensorFlow/Keras, fusión intra-área y cross-área 360° e inferencia interactiva en vivo."
             size="xs"
           />
         </div>

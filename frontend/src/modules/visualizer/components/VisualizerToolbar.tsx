@@ -148,7 +148,7 @@ export function VisualizerToolbar({
             className="nl-btn-shimmer px-3 py-1.5 rounded-xl bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-xs font-bold text-white flex items-center gap-1.5 shadow-md transition-all"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Usar en Gemelo 3D</span>
+            <span>Probar en Inferencia</span>
           </button>
         )}
 

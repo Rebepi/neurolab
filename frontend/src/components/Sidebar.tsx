@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import {
   LayoutDashboard, Layers, FileText, Settings,
   Sparkles, PanelLeftClose, PanelLeftOpen, ChevronDown, Check,
-  Shield, ScrollText, BookOpen
+  Shield, ScrollText, BookOpen, Wand2
 } from 'lucide-react'
 import { api } from '../services/api'
 import type { Project } from '../types'
@@ -51,6 +51,16 @@ const NAV_GROUPS: NavGroup[] = [
         activeBoxCls: 'bg-cyan-500/25 text-cyan-200 border-cyan-400/60 shadow-[0_0_14px_rgba(34,211,238,0.4)]',
         activeBtnCls: 'bg-gradient-to-r from-cyan-500/25 via-cyan-500/10 to-slate-900/60 border-cyan-400/60 shadow-[0_0_20px_rgba(34,211,238,0.22)]',
         hoverBtnCls: 'hover:border-cyan-500/40',
+      },
+      {
+        id: 'predict',
+        label: 'Usar Modelos IA',
+        Icon: Wand2,
+        badge: 'LIVE',
+        iconBoxCls: 'bg-teal-500/15 text-teal-400 border-teal-500/35 shadow-[0_0_10px_rgba(20,184,166,0.18)]',
+        activeBoxCls: 'bg-teal-500/25 text-teal-200 border-teal-400/60 shadow-[0_0_14px_rgba(20,184,166,0.4)]',
+        activeBtnCls: 'bg-gradient-to-r from-teal-500/25 via-cyan-500/10 to-slate-900/60 border-teal-400/60 shadow-[0_0_20px_rgba(20,184,166,0.22)]',
+        hoverBtnCls: 'hover:border-teal-500/40',
       },
       {
         id: 'pipeline',

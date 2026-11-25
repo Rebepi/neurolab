@@ -368,12 +368,57 @@ export interface ModelVersion {
   created_at: string
 }
 
+export interface AreaSourceSchema {
+  project_id: string
+  project_name: string
+  dataset_name: string
+  target_column: string
+  columns_summary: ColumnSummary[]
+  preview: Record<string, any>[]
+}
+
+export interface CatalogModelVersion extends ModelVersion {
+  project_name: string
+  project_description?: string
+  area_source_schemas?: Record<string, AreaSourceSchema>
+}
+
+export interface CsvPredictionItem {
+  row_index: number
+  features: Record<string, any>
+  prediction: string | number
+  predicted_label: string
+  probability: number | null
+  risk_level: 'ALTO' | 'MEDIO' | 'BAJO'
+}
+
+export interface CsvPredictionResponse {
+  model_id: string
+  filename: string
+  dataset_name: string
+  target_column: string
+  problem_type: 'binary_classification' | 'multiclass_classification' | 'regression'
+  total_rows: number
+  truncated: boolean
+  matched_columns: string[]
+  missing_columns: string[]
+  high_risk_count: number
+  medium_risk_count: number
+  low_risk_count: number
+  avg_prediction: number | null
+  class_counts: Record<string, number>
+  latency_ms: number
+  items: CsvPredictionItem[]
+  csv_content: string
+}
+
 export interface LayerTrace {
   name: string
   type: string
   units: number
   activation: string
   neurons: number[]
+  neuron_names?: string[]
   mean_activation: number
   max_activation: number
   active_ratio: number

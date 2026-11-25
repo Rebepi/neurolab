@@ -257,14 +257,14 @@ export function ModelVersionsGrid({
                 </SystemTooltip>
 
                 {onUseIn3D && (
-                  <SystemTooltip label="Usar este modelo en Vivo 3D (Paso 07)" side="top">
+                  <SystemTooltip label="Usar este modelo en Inferencia en Vivo (Paso 07)" side="top">
                     <button
                       type="button"
                       onClick={() => onUseIn3D(m)}
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-indigo-500/35 bg-indigo-500/12 hover:bg-indigo-500/25 text-indigo-200 text-[11px] font-semibold transition-colors"
                     >
                       <Box className="w-3 h-3" />
-                      <span>Vivo 3D</span>
+                      <span>En Vivo</span>
                     </button>
                   </SystemTooltip>
                 )}

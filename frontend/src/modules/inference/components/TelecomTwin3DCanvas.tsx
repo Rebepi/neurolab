@@ -311,8 +311,8 @@ export function TelecomTwin3DCanvas({
 
   return (
     <div className="nl-cyber-panel animate-card-reveal rounded-2xl overflow-hidden relative flex-1 flex flex-col">
-      <div className="flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-800/80 bg-slate-900/85">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
+      <div className="flex flex-wrap 2xl:flex-nowrap items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-800/80 bg-slate-900/85">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border shrink-0"
             style={{
@@ -334,7 +334,7 @@ export function TelecomTwin3DCanvas({
           </span>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex flex-wrap items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={() => setSelectedLayerIdx(null)}

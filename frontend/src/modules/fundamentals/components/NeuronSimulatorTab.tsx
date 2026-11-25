@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { RotateCcw, Sliders, Sparkles, Zap } from 'lucide-react'
-import { InfoTip } from '../../../components/InfoTip'
+import { InfoTip, SystemTooltip } from '../../../components/InfoTip'
 import {
   evalNeuronActivation,
   evalNeuronDerivative,
@@ -54,19 +54,24 @@ export function NeuronSimulatorTab() {
             <InfoTip text="Carga casos clásicos de redes neuronales para observar compuertas lógicas, saturación y neuronas muertas." size="xs" />
           </span>
           {NEURON_PRESETS.map(preset => (
-            <button
+            <SystemTooltip
               key={preset.id}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all inline-flex items-center gap-1.5 ${
-                activePresetId === preset.id
-                  ? 'bg-indigo-600/25 border-indigo-500 text-indigo-200 shadow-sm shadow-indigo-500/20'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-              }`}
+              title={preset.label}
+              label={preset.hint}
+              side="bottom"
             >
-              <span>{preset.label}</span>
-              <InfoTip text={preset.hint} size="xs" />
-            </button>
+              <button
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all inline-flex items-center gap-1.5 ${
+                  activePresetId === preset.id
+                    ? 'bg-indigo-600/25 border-indigo-500 text-indigo-200 shadow-sm shadow-indigo-500/20'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                }`}
+              >
+                <span>{preset.label}</span>
+              </button>
+            </SystemTooltip>
           ))}
         </div>
 

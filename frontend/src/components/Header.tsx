@@ -13,6 +13,10 @@ const MODULE_LABELS: Record<string, { title: string; description: string }> = {
     title: 'Centro de Mando',
     description: 'Resumen operativo, métricas clave en tiempo real, estado del motor TensorFlow y ejecuciones recientes.',
   },
+  predict: {
+    title: 'Usar Modelos IA',
+    description: 'Ingresa datos reales en lenguaje sencillo o sube un CSV nuevo para obtener predicciones inmediatas y recomendaciones.',
+  },
   visualizer: {
     title: 'Motor Sináptico Real',
     description: 'Inspección capa por capa de pesos W, sesgos b y activaciones reales del modelo entrenado .keras.',
@@ -46,8 +50,8 @@ const MODULE_LABELS: Record<string, { title: string; description: string }> = {
     description: 'Versiones inmutables, verificación SHA-256, descarga de artefactos .keras, simulador y aprobación.',
   },
   inference: {
-    title: 'Gemelo 3D & Uso Real',
-    description: 'Ejecuta predicciones reales sobre modelos .keras entrenados con animación 3D capa por capa y What-If.',
+    title: 'Inferencia en Vivo',
+    description: 'Ejecuta predicciones reales sobre modelos .keras entrenados con grafo neuronal capa por capa y simulación What-If.',
   },
   reports: {
     title: 'Reportes Ejecutivos',

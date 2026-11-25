@@ -110,7 +110,7 @@ export default function LoginPage() {
               </span>
             </h1>
             <p className="text-slate-300/85 text-sm sm:text-[15px] mt-3 leading-relaxed">
-              Ecosistema corporativo de Inteligencia Artificial con 4 áreas operativas (Retención, Red NOC 5G, Antifraude y Comercial LTV), entrenamiento real en TensorFlow/Keras y Gemelos Digitales 3D.
+              Ecosistema corporativo de Inteligencia Artificial con 4 áreas operativas (Retención, Red NOC 5G, Antifraude y Comercial LTV), entrenamiento real en TensorFlow/Keras e inferencia neuronal interactiva en vivo.
             </p>
           </div>
 
@@ -134,10 +134,10 @@ export default function LoginPage() {
             >
               <div className="flex items-center gap-1.5 text-cyan-400 text-xs font-bold">
                 <Layers className="w-3.5 h-3.5 shrink-0" />
-                <span>Gemelo 3D</span>
+                <span>Inferencia</span>
               </div>
               <p className="text-slate-300/80 text-[11px] leading-snug">
-                Escenarios 3D interactivos conectados al modelo real.
+                Escenarios interactivos What-If conectados al modelo real.
               </p>
             </div>
 

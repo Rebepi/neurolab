@@ -399,7 +399,7 @@ export function SelectedModelPanel({
                 className="nl-btn-shimmer inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white text-xs font-bold transition-all"
               >
                 <Box className="w-3.5 h-3.5" />
-                <span>Usar en Vivo 3D (07)</span>
+                <span>Usar en Inferencia (07)</span>
               </button>
             )}
             {onOpenReport && (

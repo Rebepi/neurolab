@@ -119,10 +119,18 @@ export default function CommandPalette({ open, onClose, onNavigate }: CommandPal
       action: () => { onNavigate('models'); onClose() }
     },
     {
+      id: 'nav-predict',
+      category: 'Centro Corporativo',
+      title: 'Usar Modelos IA (Predicción Directa y CSV)',
+      subtitle: 'Ingresar datos reales en español o subir CSV para predecir al instante',
+      Icon: Brain,
+      action: () => { onNavigate('predict'); onClose() }
+    },
+    {
       id: 'nav-inference',
       category: 'Pipeline por Área IA',
-      title: 'Paso 07 · Gemelo Digital 3D & Uso Real del Modelo (M10)',
-      subtitle: 'Inferencia real Keras, simulación What-If y radar batch 3D',
+      title: 'Paso 07 · Inferencia en Vivo & Simulador What-If (M10)',
+      subtitle: 'Inferencia real Keras, grafo neuronal, simulación What-If y radar batch',
       shortcut: '7',
       Icon: Brain,
       action: () => { onNavigate('inference'); onClose() }

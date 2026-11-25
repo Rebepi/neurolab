@@ -76,6 +76,13 @@ export default function EvaluationModule({
       .catch(() => {})
   }, [selectedJobId, metricsMap])
 
+  const selectedJob = completedJobs.find(j => j.id === selectedJobId) ?? null
+  const metrics = selectedJobId ? (metricsMap[selectedJobId] ?? []) : []
+
+  useEffect(() => {
+    setNotesDraft(selectedJob?.notes ?? '')
+  }, [selectedJob?.id, selectedJob?.notes])
+
   if (!currentProject) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-500">
@@ -84,13 +91,6 @@ export default function EvaluationModule({
       </div>
     )
   }
-
-  const selectedJob = completedJobs.find(j => j.id === selectedJobId) ?? null
-  const metrics = selectedJobId ? (metricsMap[selectedJobId] ?? []) : []
-
-  useEffect(() => {
-    setNotesDraft(selectedJob?.notes ?? '')
-  }, [selectedJob?.id, selectedJob?.notes])
 
   async function handleSaveNotes() {
     if (!selectedJob) return
@@ -344,7 +344,7 @@ export default function EvaluationModule({
                 <div className="rounded-xl bg-slate-950/75 border border-slate-800/90 px-3 py-2 min-w-0">
                   <p className="text-[10px] uppercase tracking-wider text-slate-400">Versión &amp; Batch</p>
                   <p className="text-xs font-mono font-bold text-amber-300 truncate mt-0.5">
-                    v{selectedJob.model_version?.version || '1.0.0'} · batch{' '}
+                    {(selectedJob.model_version?.version || 'v1.0.0').replace(/^v?/i, 'v')} · batch{' '}
                     {selectedJob.hyperparams?.batch_size ?? 32}
                   </p>
                 </div>

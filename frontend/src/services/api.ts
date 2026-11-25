@@ -1,8 +1,8 @@
 import type {
   Project, Dataset, Architecture, TrainingJob,
-  ModelVersion, AuditEvent, DashboardOverview,
+  ModelVersion, CatalogModelVersion, AuditEvent, DashboardOverview,
   User, SystemQuotas, SystemPolicies, EpochMetric,
-  PredictionResponse, BatchPredictionResponse,
+  PredictionResponse, BatchPredictionResponse, CsvPredictionResponse,
   CrossAreaFusionResponse, AreaSelectionInput,
   DatasetCleaningOptions, DatasetRowsResponse, AutoCleanPlanResponse
 } from '../types'
@@ -327,6 +327,9 @@ export const api = {
   getProjectModels: (projectId: string): Promise<ModelVersion[]> =>
     request<ModelVersion[]>(`/projects/${projectId}/models`),
 
+  getModelsCatalog: (): Promise<CatalogModelVersion[]> =>
+    request<CatalogModelVersion[]>('/models/catalog'),
+
   updateModelStatus: (modelId: string, status: string, notes?: string, actorId: string = 'usr-reviewer') =>
     request(`/models/${modelId}/status`, { method: 'PUT', body: JSON.stringify({ status, notes, actor_id: actorId }) }),
 
@@ -338,6 +341,32 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ limit, offset }),
     }),
+
+  predictModelCsv: async (modelId: string, file: File): Promise<CsvPredictionResponse> => {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const token = getAuthToken()
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    const res = await fetch(`${BASE_URL}/models/${modelId}/predict-csv`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    })
+    if (res.status === 401) {
+      setAuthToken(null)
+      window.dispatchEvent(new Event('neurolab:unauthorized'))
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: 'Error al evaluar el archivo CSV' }))
+      throw new Error(err.detail || 'Error al evaluar el archivo CSV')
+    }
+    return res.json()
+  },
 
   getAuditEvents: (projectId?: string, limit: number = 50): Promise<AuditEvent[]> => {
     if (projectId) {

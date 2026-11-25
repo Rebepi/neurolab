@@ -419,7 +419,7 @@ export function DashboardNeuralCanvas({
             className="nl-btn-shimmer flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-teal-500 via-cyan-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-cyan-500/20 transition-all"
           >
             <Cpu className="w-3.5 h-3.5" />
-            <span>{vState?.trained_model ? 'Operar Gemelo 3D' : 'Entrenar Red Ahora'}</span>
+            <span>{vState?.trained_model ? 'Inferencia en Vivo' : 'Entrenar Red Ahora'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
           <button

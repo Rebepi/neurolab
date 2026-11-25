@@ -1,6 +1,8 @@
+import io
 import os
 import json
 import time
+import unicodedata
 
 os.environ.setdefault("TF_ENABLE_ONEDNN_OPTS", "0")
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
@@ -10,14 +12,18 @@ import pandas as pd
 import tensorflow as tf
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from app.database import get_db
+from app.eda import read_csv_bytes_flexible, sanitize_cell_value
 from app.security import (
     REVIEW_MODEL_ROLES,
+    get_accessible_project_ids,
     get_current_user,
+    get_system_policies_dict,
+    get_system_quotas_dict,
     log_audit_event,
     verify_project_access,
 )
@@ -34,6 +40,30 @@ def _get_cached_keras_model(model_path: str):
     loaded = tf.keras.models.load_model(model_path)
     _MODEL_CACHE[model_path] = (mtime, loaded)
     return loaded
+
+
+def _classify_multiclass_risk(class_label: str, class_idx: int, num_classes: int) -> str:
+    """Clasifica el nivel de riesgo semánticamente según la etiqueta predicha en modelos multiclase."""
+    norm = unicodedata.normalize("NFKD", str(class_label or "")).encode("ascii", "ignore").decode("ascii").lower().strip()
+
+    high_tokens = ("falla", "crit", "alto", "fraude", "riesgo", "mora", "fuga", "alerta", "peligro", "sever")
+    med_tokens = ("degrad", "satur", "congest", "medio", "moder", "precauc", "advert", "inestab")
+    low_tokens = ("operativ", "establ", "normal", "bajo", "salud", "segur", "legitim", "solvent", "optimo")
+
+    if any(tok in norm for tok in high_tokens):
+        return "ALTO"
+    if any(tok in norm for tok in med_tokens):
+        return "MEDIO"
+    if any(tok in norm for tok in low_tokens):
+        return "BAJO"
+
+    if num_classes <= 1:
+        return "BAJO"
+    if class_idx == num_classes - 1:
+        return "ALTO"
+    if class_idx > 0:
+        return "MEDIO"
+    return "BAJO"
 
 
 class StatusUpdateRequest(BaseModel):
@@ -88,6 +118,91 @@ def list_project_models(
                 del d["arch_config_json"]
             if "dataset_metadata_json" in d:
                 del d["dataset_metadata_json"]
+            results.append(d)
+        return results
+    finally:
+        conn.close()
+
+
+@router.get("/models/catalog")
+def list_models_catalog(current_user: dict = Depends(get_current_user)):
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        accessible = get_accessible_project_ids(conn, current_user)
+        if accessible is not None and len(accessible) == 0:
+            return []
+
+        base_query = """
+            SELECT mv.*, tj.architecture_id, tj.dataset_id,
+                   p.name as project_name, p.description as project_description,
+                   a.name as arch_name, a.family as arch_family, a.config_json as arch_config_json,
+                   d.name as dataset_name, d.target as target_column, d.metadata_json as dataset_metadata_json
+            FROM model_versions mv
+            JOIN projects p ON mv.project_id = p.id
+            JOIN training_jobs tj ON mv.job_id = tj.id
+            JOIN architectures a ON tj.architecture_id = a.id
+            JOIN datasets d ON tj.dataset_id = d.id
+        """
+        if accessible is None:
+            cursor.execute(base_query + " ORDER BY mv.created_at DESC")
+        else:
+            cursor.execute(base_query + " WHERE mv.project_id = ANY(%s) ORDER BY mv.created_at DESC", (accessible,))
+        rows = cursor.fetchall()
+
+        source_area_cache: Dict[str, Dict[str, Any]] = {}
+        results = []
+        for r in rows:
+            d = dict(r)
+            d["test_metrics"] = json.loads(d["test_metrics_json"])
+            d["confusion_matrix"] = json.loads(d["confusion_matrix_json"])
+            d["architecture_config"] = json.loads(d["arch_config_json"]) if d.get("arch_config_json") else None
+            ds_meta = json.loads(d["dataset_metadata_json"]) if d.get("dataset_metadata_json") else None
+            d["dataset_metadata"] = ds_meta
+
+            fusion_rep = (ds_meta or {}).get("fusion_report") if isinstance(ds_meta, dict) else None
+            if isinstance(fusion_rep, dict) and fusion_rep.get("mode") == "cross_area_corporate_fusion":
+                area_schemas: Dict[str, Any] = {}
+                for contrib in fusion_rep.get("area_contributions") or []:
+                    src_pid = contrib.get("project_id")
+                    area_code = contrib.get("area_code")
+                    if not src_pid or not area_code:
+                        continue
+                    if src_pid not in source_area_cache:
+                        cursor.execute(
+                            """
+                            SELECT name, target, metadata_json
+                            FROM datasets
+                            WHERE project_id = %s
+                            ORDER BY created_at ASC
+                            LIMIT 1
+                            """,
+                            (src_pid,),
+                        )
+                        src_ds = cursor.fetchone()
+                        if src_ds:
+                            src_meta = json.loads(src_ds["metadata_json"] or "{}")
+                            source_area_cache[src_pid] = {
+                                "project_id": src_pid,
+                                "project_name": contrib.get("project_name") or src_pid,
+                                "dataset_name": src_ds["name"],
+                                "target_column": src_ds["target"],
+                                "columns_summary": [
+                                    c for c in (src_meta.get("columns_summary") or [])
+                                    if not c.get("is_target") and not c.get("excluded_reason")
+                                ],
+                                "preview": (src_meta.get("preview") or [])[:5],
+                            }
+                        else:
+                            source_area_cache[src_pid] = None
+                    if source_area_cache.get(src_pid):
+                        area_schemas[area_code] = source_area_cache[src_pid]
+                d["area_source_schemas"] = area_schemas
+
+            del d["test_metrics_json"]
+            del d["confusion_matrix_json"]
+            d.pop("arch_config_json", None)
+            d.pop("dataset_metadata_json", None)
             results.append(d)
         return results
     finally:
@@ -358,13 +473,18 @@ def predict_with_model(
     raw_out = keras_model.predict(encoded_vec, verbose=0)
 
     layer_traces = []
-    in_sample = [round(float(v), 4) for v in encoded_vec[0, : min(10, encoded_vec.shape[1])]]
+    in_all = [round(float(v), 4) for v in encoded_vec[0]]
+    in_names = [
+        feature_names[i] if i < len(feature_names) else f"input_{i + 1}"
+        for i in range(int(encoded_vec.shape[1]))
+    ]
     layer_traces.append({
         "name": "Capa de Entrada",
         "type": "Input",
         "units": int(encoded_vec.shape[1]),
         "activation": "z-score",
-        "neurons": in_sample,
+        "neurons": in_all,
+        "neuron_names": in_names,
         "mean_activation": round(float(np.mean(np.abs(encoded_vec))), 4),
         "max_activation": round(float(np.max(np.abs(encoded_vec))) if encoded_vec.size > 0 else 0.0, 4),
         "active_ratio": round(float(np.mean(np.abs(encoded_vec) > 0.15)), 4),
@@ -384,7 +504,8 @@ def predict_with_model(
                 w_list = layer.get_weights()
                 if len(w_list) > 0 and w_list[0].ndim == 2:
                     first_dense_weights = w_list[0]
-            norm_neurons = [round(float(np.tanh(abs(v))), 4) for v in arr[:10]]
+            max_layer_neurons = min(int(arr.size), 512)
+            norm_neurons = [round(float(np.tanh(abs(v))), 4) for v in arr[:max_layer_neurons]]
             layer_traces.append({
                 "name": "Capa de Salida" if is_last else f"Capa {idx_l + 1} ({l_type})",
                 "type": "Output" if is_last else l_type,
@@ -605,7 +726,7 @@ def predict_batch_with_model(
             prob = round(probs[b_idx], 4)
             pred_val = target_classes[b_idx] if b_idx < len(target_classes) else str(b_idx)
             pred_label = f"{target_col} = {pred_val}"
-            risk_level = "ALTO" if b_idx == len(probs) - 1 else ("MEDIO" if b_idx > 0 else "BAJO")
+            risk_level = _classify_multiclass_risk(str(pred_val), b_idx, len(probs))
             if risk_level == "ALTO":
                 high_risk_count += 1
         else:
@@ -639,6 +760,278 @@ def predict_batch_with_model(
         "high_risk_count": high_risk_count,
         "latency_ms": latency_ms,
         "items": items,
+    }
+
+
+@router.post("/models/{model_id}/predict-csv")
+async def predict_csv_with_model(
+    model_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Solo se admiten archivos en formato .csv.")
+
+    t0 = time.perf_counter()
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT mv.project_id,
+                   mv.version,
+                   mv.storage_key as model_path,
+                   d.target as target_column,
+                   d.metadata_json,
+                   d.name as dataset_name
+            FROM model_versions mv
+            JOIN training_jobs tj ON mv.job_id = tj.id
+            JOIN datasets d ON tj.dataset_id = d.id
+            WHERE mv.id = %s
+            """,
+            (model_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Modelo no encontrado")
+        verify_project_access(conn, row["project_id"], current_user)
+        quotas = get_system_quotas_dict(conn)
+        policies = get_system_policies_dict(conn)
+        max_mb = int(quotas.get("max_dataset_mb", 50))
+    finally:
+        conn.close()
+
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="El archivo CSV está vacío.")
+    if len(contents) > max_mb * 1024 * 1024:
+        raise HTTPException(status_code=400, detail=f"El archivo excede el límite máximo permitido de {max_mb} MB.")
+    if b"\x00" in contents[:4096]:
+        raise HTTPException(status_code=400, detail="El archivo contiene bytes binarios no válidos para un CSV.")
+
+    try:
+        df = read_csv_bytes_flexible(contents)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo CSV: {exc}")
+
+    if len(df) == 0:
+        raise HTTPException(status_code=400, detail="El CSV no contiene filas de datos para evaluar.")
+
+    max_rows = 2000
+    truncated = len(df) > max_rows
+    if truncated:
+        df = df.iloc[:max_rows].copy()
+
+    model_path = row["model_path"]
+    if not model_path or not os.path.exists(model_path):
+        raise HTTPException(status_code=404, detail="El archivo .keras del modelo no existe en disco")
+
+    eda = json.loads(row["metadata_json"] or "{}")
+    target_col = row["target_column"] or eda.get("target_column", "target")
+    problem_type = eda.get("problem_type", "binary_classification")
+    feature_names = eda.get("feature_names", [])
+    columns_summary = eda.get("columns_summary", [])
+    target_classes = eda.get("target_classes") or ["0", "1"]
+    scaler_params = eda.get("scaler_params")
+
+    expected_input_cols = [
+        c for c in columns_summary if not c.get("is_target") and not c.get("excluded_reason")
+    ]
+    matched_columns = [c["name"] for c in expected_input_cols if c["name"] in df.columns]
+    missing_columns = [c["name"] for c in expected_input_cols if c["name"] not in df.columns]
+
+    if len(expected_input_cols) > 0 and len(matched_columns) == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Ninguna columna del CSV coincide con las variables esperadas por este modelo. Descarga la plantilla CSV para ver el formato exacto.",
+        )
+
+    work_df = pd.DataFrame(index=df.index)
+    for col_info in expected_input_cols:
+        cname = col_info["name"]
+        if col_info.get("dtype") == "numeric":
+            default_val = float(col_info.get("mean") or 0.0)
+            if cname in df.columns:
+                work_df[cname] = pd.to_numeric(df[cname], errors="coerce").fillna(default_val)
+            else:
+                work_df[cname] = default_val
+        else:
+            top_vals = list((col_info.get("top_values") or {}).keys())
+            default_cat = str(top_vals[0]) if top_vals else "Desconocido"
+            if cname in df.columns:
+                work_df[cname] = df[cname].fillna(default_cat).astype(str).str.strip()
+            else:
+                work_df[cname] = default_cat
+
+    X_enc = np.zeros((len(work_df), len(feature_names)), dtype=float)
+    col_map = {c["name"]: c for c in expected_input_cols}
+
+    for idx, fname in enumerate(feature_names):
+        if fname in work_df.columns and col_map.get(fname, {}).get("dtype") == "numeric":
+            X_enc[:, idx] = work_df[fname].values.astype(float)
+        else:
+            for col_info in expected_input_cols:
+                if col_info.get("dtype") == "categorical":
+                    cname = col_info["name"]
+                    prefix = f"{cname}_"
+                    if fname.startswith(prefix):
+                        cat_val = fname[len(prefix) :]
+                        X_enc[:, idx] = (work_df[cname].astype(str) == cat_val).astype(float).values
+                        break
+
+    log_cols = set(eda.get("log_transformed_columns") or [])
+    if len(log_cols) > 0 and len(feature_names) > 0:
+        for idx, fname in enumerate(feature_names):
+            if fname in log_cols:
+                X_enc[:, idx] = np.log1p(np.maximum(0.0, X_enc[:, idx]))
+
+    if scaler_params and len(feature_names) > 0:
+        s_type = scaler_params.get("type")
+        if s_type == "minmax":
+            mins = np.array(scaler_params.get("min", np.zeros(len(feature_names))), dtype=float)
+            scales = np.array(scaler_params.get("scale", np.ones(len(feature_names))), dtype=float)
+            if len(mins) == len(feature_names):
+                X_enc = (X_enc - mins) * scales
+        elif s_type == "robust":
+            centers = np.array(scaler_params.get("center", np.zeros(len(feature_names))), dtype=float)
+            scales = np.array(scaler_params.get("scale", np.ones(len(feature_names))), dtype=float)
+            if len(centers) == len(feature_names):
+                scales = np.where(scales == 0, 1.0, scales)
+                X_enc = (X_enc - centers) / scales
+        elif s_type != "none":
+            means = np.array(scaler_params.get("mean", np.zeros(len(feature_names))), dtype=float)
+            scales = np.array(scaler_params.get("scale", np.ones(len(feature_names))), dtype=float)
+            if len(means) == len(feature_names):
+                scales = np.where(scales == 0, 1.0, scales)
+                X_enc = (X_enc - means) / scales
+
+    keras_model = _get_cached_keras_model(model_path)
+    expected_in = int(keras_model.input_shape[-1])
+    if X_enc.shape[1] < expected_in:
+        X_enc = np.hstack([X_enc, np.zeros((len(X_enc), expected_in - X_enc.shape[1]), dtype=float)])
+    elif X_enc.shape[1] > expected_in:
+        X_enc = X_enc[:, :expected_in]
+
+    raw_outs = keras_model.predict(X_enc, verbose=0)
+    latency_ms = round((time.perf_counter() - t0) * 1000.0, 1)
+
+    pred_values = []
+    prob_values = []
+    risk_levels = []
+    high_risk = 0
+    medium_risk = 0
+    low_risk = 0
+    class_counts: Dict[str, int] = {}
+    items = []
+
+    raw_records = df.to_dict(orient="records")
+    for idx, rec in enumerate(raw_records):
+        clean_features = {str(k): sanitize_cell_value(v) for k, v in rec.items() if str(k) != target_col}
+        if problem_type == "regression":
+            pred_val = round(float(raw_outs[idx].flatten()[0]), 2)
+            prob = None
+            risk_level = "MEDIO"
+            medium_risk += 1
+            pred_label = f"{pred_val:,.2f}"
+        elif problem_type == "multiclass_classification" and raw_outs.shape[-1] > 1:
+            probs = [float(p) for p in raw_outs[idx].flatten()]
+            b_idx = int(np.argmax(probs))
+            prob = round(probs[b_idx], 4)
+            pred_val = target_classes[b_idx] if b_idx < len(target_classes) else str(b_idx)
+            pred_label = str(pred_val)
+            class_counts[pred_label] = class_counts.get(pred_label, 0) + 1
+            risk_level = _classify_multiclass_risk(pred_label, b_idx, len(probs))
+            if risk_level == "ALTO":
+                high_risk += 1
+            elif risk_level == "MEDIO":
+                medium_risk += 1
+            else:
+                low_risk += 1
+        else:
+            p_pos = max(0.0, min(1.0, float(raw_outs[idx].flatten()[0])))
+            prob = round(p_pos, 4)
+            cls_0 = target_classes[0] if len(target_classes) > 0 else "0"
+            cls_1 = target_classes[1] if len(target_classes) > 1 else "1"
+            pred_val = cls_1 if p_pos >= 0.5 else cls_0
+            pred_label = str(pred_val)
+            class_counts[pred_label] = class_counts.get(pred_label, 0) + 1
+            if p_pos >= 0.65:
+                risk_level = "ALTO"
+                high_risk += 1
+            elif p_pos >= 0.40:
+                risk_level = "MEDIO"
+                medium_risk += 1
+            else:
+                risk_level = "BAJO"
+                low_risk += 1
+
+        pred_values.append(pred_val)
+        prob_values.append(round(prob * 100.0, 2) if prob is not None else "")
+        risk_levels.append(risk_level)
+
+        if idx < 200:
+            items.append({
+                "row_index": idx + 1,
+                "features": clean_features,
+                "prediction": pred_val,
+                "predicted_label": pred_label,
+                "probability": prob,
+                "risk_level": risk_level,
+            })
+
+    export_df = df.copy()
+    export_df["prediccion_ia"] = pred_values
+    if problem_type != "regression":
+        export_df["probabilidad_pct"] = prob_values
+        export_df["nivel_riesgo"] = risk_levels
+    csv_buf = io.StringIO()
+    export_df.to_csv(csv_buf, index=False)
+
+    if policies.get("strict_inference_audit", True):
+        conn = get_db()
+        try:
+            log_audit_event(
+                conn,
+                current_user["id"],
+                current_user["display_name"],
+                row["project_id"],
+                "MODEL_BATCH_PREDICTION",
+                {
+                    "model_id": model_id,
+                    "version": row["version"],
+                    "filename": file.filename,
+                    "rows_evaluated": len(df),
+                    "high_risk_count": high_risk,
+                },
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    avg_prediction = (
+        round(float(np.mean(pred_values)), 2)
+        if problem_type == "regression" and len(pred_values) > 0
+        else None
+    )
+
+    return {
+        "model_id": model_id,
+        "filename": file.filename,
+        "dataset_name": row["dataset_name"],
+        "target_column": target_col,
+        "problem_type": problem_type,
+        "total_rows": len(df),
+        "truncated": truncated,
+        "matched_columns": matched_columns,
+        "missing_columns": missing_columns,
+        "high_risk_count": high_risk,
+        "medium_risk_count": medium_risk,
+        "low_risk_count": low_risk,
+        "avg_prediction": avg_prediction,
+        "class_counts": class_counts,
+        "latency_ms": latency_ms,
+        "items": items,
+        "csv_content": csv_buf.getvalue(),
     }
 
 

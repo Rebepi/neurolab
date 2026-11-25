@@ -1623,8 +1623,8 @@ export function ArchitectureFlowStudio({
 
   return (
     <div className="nl-cyber-panel animate-card-reveal flex-1 h-full min-h-[380px] flex flex-col rounded-2xl overflow-hidden">
-      <div className="px-3.5 py-2 border-b border-white/10 bg-slate-900/55 flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="px-3.5 py-2 border-b border-white/10 bg-slate-900/55 flex flex-wrap 2xl:flex-nowrap items-center justify-between gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
           <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-200 whitespace-nowrap">
             <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
             Plano de Arquitectura
@@ -1645,7 +1645,7 @@ export function ArchitectureFlowStudio({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap shrink-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
             onClick={() => onOpenInsights('reasons')}
